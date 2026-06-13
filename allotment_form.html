@@ -1,0 +1,224 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}{{ title }} — NIA{% endblock %}
+{% block content %}
+
+
+<style>
+.af-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; }
+.af-header h1 { font-size:1.6rem; font-weight:700; color:var(--navy); margin-bottom:.2rem; }
+.af-header .subtitle { font-size:.85rem; color:var(--text-muted); }
+
+.af-section { background:#fff; border-radius:10px; margin-bottom:1.25rem; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.af-section-head {
+    background:var(--navy); color:#fff; padding:.65rem 1.2rem;
+    font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    display:flex; align-items:center; gap:.5rem;
+}
+.af-section-head .dot { width:8px; height:8px; border-radius:50%; background:#f5a623; flex-shrink:0; }
+.af-section-body { padding:1.4rem 1.4rem 1.2rem; }
+
+.linked-banner {
+    background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px;
+    padding:.75rem 1.1rem; font-size:.83rem; color:#0369a1;
+    margin-bottom:1.25rem; display:flex; align-items:center; gap:.5rem;
+}
+.linked-banner .check { color:#16a34a; font-size:1rem; }
+.linked-banner strong { color:#0c4a6e; }
+
+.af-label {
+    display:block; font-size:.72rem; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--text-muted); margin-bottom:.4rem;
+}
+.af-label .req { color:#e53e3e; }
+.af-label .tag-auto {
+    background:#e0f2fe; color:#0369a1; font-size:.65rem; font-weight:700;
+    padding:1px 5px; border-radius:3px; margin-left:.3rem;
+    text-transform:uppercase; letter-spacing:.04em;
+}
+.af-input {
+    width:100%; padding:.65rem .85rem; border:1.5px solid #d1d5db; border-radius:7px;
+    font-size:.9rem; color:var(--navy); background:#fff;
+    transition:border .15s, box-shadow .15s; font-family:inherit;
+}
+.af-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,.15); }
+.af-input.auto-populated { background:#f9fafb; color:#374151; border-color:#e5e7eb; }
+
+.af-row { margin-bottom:1.1rem; }
+.af-cols-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.af-cols-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+@media(max-width:768px){ .af-cols-2,.af-cols-3 { grid-template-columns:1fr; } }
+
+.af-hint { font-size:.75rem; color:var(--text-muted); margin-top:.35rem; }
+.af-actions { display:flex; gap:.75rem; justify-content:flex-end; margin-top:1.5rem; }
+</style>
+
+<div class="af-header">
+    <div>
+        <h1>{{ title }}</h1>
+        <div class="subtitle">Statement of Allotment Obligations, Disbursements and Balances</div>
+    </div>
+    <a href="{% url 'allotment_list' %}" class="btn btn-outline">← Back</a>
+</div>
+
+<div class="linked-banner" id="linked-banner" style="display:none;">
+    <span class="check">✅</span>
+    <span><strong>Linked Record:</strong> <span id="linked-text"></span></span>
+</div>
+
+<form method="post" id="allotment-form">
+    {% csrf_token %}
+
+    <!-- SUB-ALLOTMENT RECORD -->
+    <div class="af-section">
+        <div class="af-section-head"><div class="dot"></div> Sub-Allotment Record</div>
+        <div class="af-section-body">
+            <div class="af-row">
+                <label class="af-label" for="id_sub_allotment_record">
+                    Sub-Allotment Record <span class="req">*</span>
+                </label>
+                {{ form.sub_allotment_record }}
+                <div class="af-hint">Select the LFPs / COB / CARP record — project name, ASA No., and allotment amounts are pulled automatically.</div>
+            </div>
+            <div id="auto-fields" style="display:none; margin-top:1rem;">
+                <div class="af-cols-3 af-row">
+                    <div>
+                        <label class="af-label">ASA No. <span class="tag-auto">AUTO</span></label>
+                        <input type="text" class="af-input auto-populated" id="disp-asa" readonly>
+                    </div>
+                    <div>
+                        <label class="af-label">Allotment Received <span class="tag-auto">AUTO</span></label>
+                        <input type="text" class="af-input auto-populated" id="disp-allotment" readonly>
+                    </div>
+                    <div>
+                        <label class="af-label">ADA Received <span class="tag-auto">AUTO</span></label>
+                        <input type="text" class="af-input auto-populated" id="disp-ada" readonly>
+                    </div>
+                </div>
+                <div class="af-cols-2 af-row">
+                    <div>
+                        <label class="af-label">Description <span class="tag-auto">AUTO</span></label>
+                        <input type="text" class="af-input auto-populated" id="disp-description" readonly>
+                    </div>
+                    <div>
+                        <label class="af-label">Object Code <span class="tag-auto">AUTO</span></label>
+                        <input type="text" class="af-input auto-populated" id="disp-object-code" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPORT DATE -->
+    <div class="af-section">
+        <div class="af-section-head"><div class="dot"></div> Report Date</div>
+        <div class="af-section-body">
+            <div class="af-row" style="max-width:280px;">
+                <label class="af-label">Date <span class="req">*</span></label>
+                {{ form.date }}
+            </div>
+        </div>
+    </div>
+
+    <!-- OBLIGATION -->
+    <div class="af-section">
+        <div class="af-section-head"><div class="dot"></div> Obligation</div>
+        <div class="af-section-body">
+            <div class="af-cols-2 af-row">
+                <div>
+                    <label class="af-label">Obligation This Report</label>
+                    <input type="number" name="obligation_this_report" class="af-input" value="0" step="0.01">
+                </div>
+                <div>
+                    <label class="af-label">Obligation Previous</label>
+                    <input type="number" name="obligation_previous" class="af-input" value="0" step="0.01">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DISBURSEMENT -->
+    <div class="af-section">
+        <div class="af-section-head"><div class="dot"></div> Disbursement</div>
+        <div class="af-section-body">
+            <div class="af-cols-2 af-row">
+                <div>
+                    <label class="af-label">Disbursement This Report</label>
+                    <input type="number" name="disbursement_this_report" class="af-input" value="0" step="0.01">
+                </div>
+                <div>
+                    <label class="af-label">Disbursement Previous</label>
+                    <input type="number" name="disbursement_previous" class="af-input" value="0" step="0.01">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REMARKS -->
+    <div class="af-section">
+        <div class="af-section-head"><div class="dot"></div> Remarks</div>
+        <div class="af-section-body">
+            <div class="af-row">
+                <label class="af-label">Remarks</label>
+                {{ form.remarks }}
+            </div>
+        </div>
+    </div>
+
+    {{ form.project_name }}
+    {{ form.ada_number }}
+    {{ form.allotment_received }}
+    {{ form.ada_received }}
+    {{ form.object_code }}
+
+    <div class="af-actions">
+        <a href="{% url 'allotment_list' %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">💾 {{ action }} Record</button>
+    </div>
+</form>
+
+<script>
+let recordsData = {};
+
+fetch('/api/suballotment-records/')
+  .then(r => r.json())
+  .then(data => {
+    data.records.forEach(rec => { recordsData[rec.id] = rec; });
+    const sel = document.getElementById('id_sub_allotment_record');
+    if (sel && sel.value) populateFields(sel.value);
+  });
+
+function fmt(val) {
+  return '₱' + parseFloat(val || 0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function populateFields(id) {
+  const rec = recordsData[id];
+  if (!rec) {
+    document.getElementById('auto-fields').style.display = 'none';
+    document.getElementById('linked-banner').style.display = 'none';
+    return;
+  }
+  document.getElementById('disp-asa').value         = rec.asa_number;
+  document.getElementById('disp-allotment').value   = fmt(rec.allotment_received);
+  document.getElementById('disp-ada').value         = fmt(rec.ada_received);
+  document.getElementById('disp-description').value = rec.description;
+  document.getElementById('disp-object-code').value = rec.object_code || '—';
+
+  document.getElementById('id_project_name').value       = rec.description;
+  document.getElementById('id_ada_number').value         = rec.asa_number;
+  document.getElementById('id_allotment_received').value = rec.allotment_received;
+  document.getElementById('id_ada_received').value       = rec.ada_received;
+  document.getElementById('id_object_code').value        = rec.object_code;
+
+  document.getElementById('linked-text').textContent =
+    rec.asa_number + ' | ' + rec.description + ' | Allotment: ' + fmt(rec.allotment_received);
+  document.getElementById('linked-banner').style.display = 'flex';
+  document.getElementById('auto-fields').style.display   = 'block';
+}
+
+document.getElementById('id_sub_allotment_record').addEventListener('change', function() {
+  populateFields(this.value);
+});
+</script>
+
+{% endblock %}
