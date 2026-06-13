@@ -1,0 +1,54 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}Status of Funds — {{ fund_label }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Status of Funds — {{ fund_label }}</h1>
+        <div class="subtitle">Statement of Allotment Obligations, Disbursements and Balances</div>
+    </div>
+    <a href="{% url 'status_of_funds_create' %}?fund={{ fund }}" class="btn btn-primary">+ New Record</a>
+</div>
+
+<div class="card">
+    <div class="card-header">📊 Records <span class="accent">({{ records.count }})</span></div>
+    <div class="table-wrap">
+        {% if records %}
+        <table>
+            <thead>
+                <tr>
+                    <th>As of Date</th>
+                    <th>Fund Code</th>
+                    <th>Region</th>
+                    <th>Report Month</th>
+                    <th>Entries</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td style="font-weight:600;">{{ r.as_of_date|date:"M d, Y" }}</td>
+                    <td style="font-size:.82rem;">{{ r.fund_code }}</td>
+                    <td style="font-size:.82rem;">{{ r.region }}</td>
+                    <td style="font-size:.82rem;">{{ r.report_month }}</td>
+                    <td><span class="badge badge-region">{{ r.entries.count }} entries</span></td>
+                    <td>
+                        <div style="display:flex;gap:.4rem;">
+                            <a href="{% url 'status_of_funds_detail' r.pk %}" class="btn btn-outline btn-sm">View</a>
+                            <a href="{% url 'status_of_funds_delete' r.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding:3rem;text-align:center;color:var(--text-muted);">
+            <div style="font-size:2.5rem;margin-bottom:1rem;">📂</div>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:.4rem;">No records yet</div>
+            <div style="font-size:.85rem;">Click <strong>+ New Record</strong> to add a Status of Funds report.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
