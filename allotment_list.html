@@ -1,0 +1,117 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}Allotment Statement — NIA{% endblock %}
+{% load humanize %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Allotment Statement</h1>
+        <div class="subtitle">Statement of Allotment — Projects/Activities/Programs</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">📋 Allotment Records <span class="accent">({{ records.count }})</span></div>
+    <div class="table-wrap">
+        {% if records %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th></th>
+                    <th>Name of Projects/Activities/Programs</th>
+                    <th>ADA No.</th>
+                    <th>Allotment Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <!-- Main Row -->
+                <tr class="main-row" onclick="toggleExpand('row-{{ r.id }}')" style="cursor:pointer;">
+                    <td style="color:var(--text-muted);font-size:.8rem;">{{ forloop.counter }}</td>
+                    <td style="width:30px;text-align:center;">
+                        <span class="expand-icon" id="icon-{{ r.id }}" style="font-size:.7rem;color:var(--text-muted);">▶</span>
+                    </td>
+                    <td style="font-weight:600;font-size:.875rem;">{{ r.description }}</td>
+                    <td style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;">{{ r.advice_number }}</td>
+                   <td><span class="badge badge-amount">₱{{ r.total_amount|floatformat:2|intcomma }}</span></td>
+                </tr>
+
+                <!-- Expandable Row -->
+                <tr id="row-{{ r.id }}" class="expand-row" style="display:none;">
+                    <td colspan="5" style="padding:0;background:#f8f9ff;border-bottom:2px solid var(--border);">
+                        <div style="padding:1rem 1.5rem;">
+
+                            {% if r.province_allotments.all %}
+                                {% for province in r.province_allotments.all %}
+                                <div class="province-detail-block" style="margin-bottom:1rem;">
+                                    <div class="province-detail-header">
+                                        <span>📍 {{ province.province_name }}</span>
+                                        <span class="prov-total">₱{{ province.total_amount|floatformat:2 }}</span>
+                                    </div>
+
+                                    {% if province.cis_allotments.all %}
+                                    <table class="cis-table" style="background:white;">
+                                        <thead>
+                                            <tr style="background:#e8f0fe;">
+                                                <th style="padding:.5rem 1rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);text-align:left;">CIS / Activity</th>
+                                                <th style="padding:.5rem 1rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);text-align:right;">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for cis in province.cis_allotments.all %}
+                                            <tr>
+                                                <td style="padding:.5rem 1rem;font-size:.85rem;">{{ cis.cis_name }}</td>
+                                                <td class="cis-amt" style="padding:.5rem 1rem;font-family:'IBM Plex Mono',monospace;text-align:right;font-size:.85rem;">
+                                                    ₱{{ cis.amount|floatformat:2 }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    {% else %}
+                                    <div style="padding:.75rem 1rem;font-size:.82rem;color:var(--text-muted);">No CIS records.</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                            <div style="padding:.5rem;font-size:.85rem;color:var(--text-muted);">No province allotments found.</div>
+                            {% endif %}
+
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background:#f0f4ff;font-weight:700;">
+                    <td colspan="5"></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div style="padding:3rem;text-align:center;color:var(--text-muted);">
+            <div style="font-size:2.5rem;margin-bottom:1rem;">📂</div>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:.4rem;">No records yet</div>
+            <div style="font-size:.85rem;">Click <strong>+ New Record</strong> to add an Allotment Statement.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleExpand(rowId) {
+    const row = document.getElementById(rowId);
+    const iconId = rowId.replace('row-', 'icon-');
+    const icon = document.getElementById(iconId);
+    if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        icon.textContent = '▼';
+        icon.style.color = 'var(--blue)';
+    } else {
+        row.style.display = 'none';
+        icon.textContent = '▶';
+        icon.style.color = 'var(--text-muted)';
+    }
+}
+</script>
+{% endblock %}
