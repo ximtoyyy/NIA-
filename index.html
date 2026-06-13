@@ -1,0 +1,142 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}NIA Sub-Allotment Records{% endblock %}
+{% load humanize %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Sub-Allotment Advices{% if active_fund %} — 501 {{ active_fund }}{% endif %}</h1>
+        <div class="subtitle">National Irrigation Administration — Pambansang Pangasiwaan ng Patubig</div>
+    </div>
+    {% if active_fund %}
+        <a href="{% url 'create_advice' %}?fund={{ active_fund }}" class="btn btn-primary">+ New Record</a>
+    {% else %}
+        <form method="get" style="display:flex;align-items:center;gap:.5rem;position:relative;">
+            <div style="position:relative;">
+                <input type="text" name="search_query" id="searchInput" value="{{ search_query }}"
+                       placeholder="Search advice no., description…"
+                       style="padding:.5rem .9rem;border:1.5px solid #cbd5e1;border-radius:6px;font-size:.85rem;
+                              width:300px;font-family:'IBM Plex Sans',sans-serif;outline:none;"
+                       autocomplete="off">
+                <div id="suggestions" style="display:none;position:absolute;top:100%;left:0;width:100%;
+                     background:#fff;border:1px solid #d1c9b8;border-radius:6px;
+                     box-shadow:0 8px 24px rgba(10,22,40,.12);z-index:9999;max-height:260px;overflow-y:auto;margin-top:4px;">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding:.5rem 1rem;font-size:.85rem;">🔍 Search</button>
+            {% if search_query %}
+            <a href="{% url 'index' %}" class="btn btn-outline" style="padding:.5rem 1rem;font-size:.85rem;">✕ Clear</a>
+            {% endif %}
+        </form>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">📋 All Records <span class="accent">({{ advices.count }})</span></div>
+    <div class="table-wrap">
+        {% if advices %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Advice No.</th><th>Date</th><th>Region</th><th>Location</th>
+                    <th>Description</th><th>Total Amount</th><th>Provinces</th><th>Actions</th> 
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in advices %}
+                <tr>
+                    <td><strong style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;">{{ a.advice_number }}</strong></td>
+                    <td>{{ a.date|date:"M d, Y" }}</td>
+                    <td><span class="badge badge-region">Region {{ a.region }}</span></td>
+                    <td style="font-size:.82rem;">{{ a.to_location }}</td>
+                    <td style="font-size:.85rem;">{{ a.description }}</td>
+                    <td><span class="badge badge-amount">₱{{ a.total_amount|floatformat:2|intcomma }}</span></td>
+                    <td style="font-size:.82rem;">{{ a.province_allotments.count }} province(s)</td>
+                    <td>
+                        <div style="display:flex;gap:.4rem;">
+                            <a href="{% url 'detail_advice' a.pk %}" class="btn btn-outline btn-sm">View</a>
+                            <a href="{% url 'edit_advice' a.pk %}" class="btn btn-primary btn-sm">Edit</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding:3rem;text-align:center;color:var(--text-muted);">
+            <div style="font-size:2.5rem;margin-bottom:1rem;">📂</div>
+            <div style="font-size:1rem;font-weight:600;margin-bottom:.4rem;">No records yet</div>
+            <div style="font-size:.85rem;">Click <strong>+ New Record</strong> to add a Sub-Allotment Advice.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const input = document.getElementById('searchInput');
+const box = document.getElementById('suggestions');
+let timer;
+
+input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+
+    if (q.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    if (q.length < 2) {
+        box.style.display = 'none';
+        return;
+    }
+
+    timer = setTimeout(() => {
+        fetch(`/?q=${encodeURIComponent(q)}`, {
+            headers: { 'x-requested-with': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.results.length) {
+                box.innerHTML = `
+                    <div style="padding:.65rem 1rem;font-size:.85rem;color:#4a5568;">
+                        No results found for "<strong>${q}</strong>"
+                    </div>`;
+                box.style.display = 'block';
+                return;
+            }
+            box.innerHTML = data.results.map(item => `
+                <div onclick="selectSuggestion('${item.advice_number.replace(/'/g, "\\'")}')"
+                     style="padding:.65rem 1rem;cursor:pointer;border-bottom:0.5px solid #f0ebe0;font-size:.85rem;"
+                     onmouseover="this.style.background='#f0ebe0'"
+                     onmouseout="this.style.background='#fff'">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#0a1628;">
+                        ${item.advice_number}
+                    </div>
+                    <div style="font-size:.78rem;color:#4a5568;margin-top:2px;">
+                        ${item.description} — ₱${item.total_amount}
+                    </div>
+                </div>
+            `).join('');
+            box.style.display = 'block';
+        })
+        .catch(() => {
+            box.style.display = 'none';
+        });
+    }, 250);
+});
+
+function selectSuggestion(adviceNo) {
+    input.value = adviceNo;
+    box.style.display = 'none';
+    input.closest('form') 
+        ? input.closest('form').submit() 
+        : window.location.href = `/?search_query=${encodeURIComponent(adviceNo)}`;
+}
+
+document.addEventListener('click', function (e) {
+    if (!input.contains(e.target) && !box.contains(e.target)) {
+        box.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
