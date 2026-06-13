@@ -1,0 +1,338 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}Master Lists — NIA Sub-Allotment{% endblock %}
+{% block content %}
+
+<style>
+.ml-page { max-width: 1060px; margin: 0 auto; }
+.ml-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.8rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border); }
+.ml-header h1 { font-family: 'Source Serif 4', serif; font-size: 1.7rem; font-weight: 700; color: var(--navy); }
+.ml-header .sub { font-size: .82rem; color: var(--text-muted); margin-top: .2rem; }
+
+/* Tabs */
+.ml-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.4rem; }
+.ml-tab { padding: 8px 18px; border-radius: 6px 6px 0 0; border: 1.5px solid var(--border); border-bottom: none; background: var(--cream-dark); color: var(--text-muted); font-size: .82rem; font-weight: 600; cursor: pointer; letter-spacing: .04em; transition: all .15s; position: relative; top: 2px; }
+.ml-tab.active { background: var(--white); color: var(--navy); border-color: var(--border); border-bottom: 2px solid var(--white); z-index: 2; }
+.ml-tab:hover:not(.active) { background: var(--cream); color: var(--text); }
+
+/* Panel */
+.ml-panel { background: var(--white); border: 1.5px solid var(--border); border-radius: 0 10px 10px 10px; padding: 1.4rem; box-shadow: var(--shadow); }
+
+/* Search + Count bar */
+.ml-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 1.1rem; }
+.ml-search-wrap { flex: 1; position: relative; }
+.ml-search-wrap input { width: 100%; padding: .55rem .85rem .55rem 2.2rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: .88rem; font-family: 'IBM Plex Sans', sans-serif; background: var(--cream); color: var(--text); transition: border-color .2s; }
+.ml-search-wrap input:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(59,130,246,.12); background: var(--white); }
+.search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: .9rem; pointer-events: none; }
+.ml-count { font-size: .78rem; font-weight: 600; color: var(--text-muted); background: var(--cream-dark); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+
+/* Add form */
+.ml-add-form { display: flex; gap: 8px; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.ml-add-form input, .ml-add-form select { flex: 1; min-width: 150px; padding: .55rem .85rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: .88rem; font-family: 'IBM Plex Sans', sans-serif; background: var(--cream); color: var(--text); }
+.ml-add-form input:focus, .ml-add-form select:focus { outline: none; border-color: var(--blue-light); background: var(--white); }
+.ml-add-btn { display: inline-flex; align-items: center; gap: 5px; padding: .55rem 1.3rem; background: var(--blue); color: white; border: none; border-radius: 6px; font-size: .85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ml-add-btn:hover { background: #1e40af; }
+.ml-add-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* List */
+.ml-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.ml-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--white); transition: border-color .15s, background .15s; }
+.ml-item:hover { border-color: #93c5fd; background: #f0f6ff; }
+.ml-item-code { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; background: var(--cream-dark); color: var(--text-muted); border: 1px solid var(--border); white-space: nowrap; }
+.ml-item-text { flex: 1; font-size: .88rem; color: var(--text); }
+.ml-item-sub { font-size: .75rem; color: var(--text-muted); margin-top: 1px; }
+.ml-del-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: .95rem; padding: 4px 6px; border-radius: 5px; transition: all .15s; }
+.ml-del-btn:hover { color: var(--danger); background: #fee2e2; }
+
+.ml-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); }
+.ml-empty .icon { font-size: 2rem; margin-bottom: .5rem; }
+
+/* Toast */
+.ml-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: .75rem 1.3rem; border-radius: 8px; font-size: .86rem; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.ml-toast.show { opacity: 1; }
+.ml-toast.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.ml-toast.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+/* Status indicator */
+.ml-status { display: none; align-items: center; gap: 6px; font-size: .78rem; color: var(--text-muted); margin-bottom: .5rem; }
+.ml-status.show { display: flex; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="ml-page">
+  <div class="ml-header">
+    <div>
+      <h1>📋 Master Lists</h1>
+      <div class="sub">Manage dropdown options for Sub-Allotment forms</div>
+    </div>
+    <a href="{% url 'index' %}" class="btn btn-outline btn-sm">← Back to Records</a>
+  </div>
+
+  <div class="ml-tabs" id="mlTabs"></div>
+  <div class="ml-panel">
+    <div class="ml-toolbar">
+      <div class="ml-search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="mlSearch" placeholder="Search items…" oninput="filterList()">
+      </div>
+      <div class="ml-count" id="mlCount">0 items</div>
+    </div>
+    <div class="ml-status" id="mlStatus"><div class="spinner"></div><span id="mlStatusText">Loading…</span></div>
+    <div class="ml-add-form" id="mlAddForm"></div>
+    <div class="ml-list" id="mlList"></div>
+  </div>
+</div>
+
+<div class="ml-toast" id="mlToast"></div>
+
+<script>
+const TABS = [
+  {
+    key: 'gaa',
+    label: 'GAA / SARO',
+    apiGet: '{% url "api_gaa" %}',
+    fields: [
+      { id: 'f_value', placeholder: 'e.g. NBC No. 595, RA No. 12116\nFY 2025 GAA', label: 'GAA/SARO Value', type: 'textarea' }
+    ],
+    renderItem(item) {
+      const lines = item.value.split('\n');
+      return {
+        code: lines[0] || item.value,
+        text: lines[1] || '',
+        sub: ''
+      };
+    }
+  },
+  {
+    key: 'object_code',
+    label: 'Object Code',
+    apiGet: '{% url "api_object_codes" %}',
+    fields: [
+      { id: 'f_value', placeholder: 'e.g. 1-06-10-020', label: 'Object Code' }
+    ],
+    renderItem(item) { return { code: item.value, text: '', sub: '' }; }
+  },
+  {
+    key: 'description',
+    label: 'Description (RCIS)',
+    apiGet: '{% url "api_descriptions" %}',
+    fields: [
+      { id: 'f_value', placeholder: 'e.g. Repair of Communal Irrigation Systems', label: 'Description' }
+    ],
+    renderItem(item) { return { code: '', text: item.value, sub: '' }; }
+  },
+  {
+    key: 'advice_number',
+    label: 'Advice Number',
+    apiGet: '{% url "api_advice_numbers" %}',
+    fields: [
+      { id: 'f_value', placeholder: 'e.g. REGION 13-001-2025-001-001s', label: 'Advice Number' }
+    ],
+    renderItem(item) { return { code: item.value, text: '', sub: '' }; }
+  },
+  {
+    key: 'cis',
+    label: 'CIS',
+    apiGet: '{% url "api_cis" %}?all=1',
+    fields: [
+      {
+        id: 'f_province',
+        label: 'Province',
+        type: 'select',
+        options: ['AGUSAN DEL NORTE','AGUSAN DEL SUR','DINAGAT ISLANDS','SURIGAO DEL NORTE','SURIGAO DEL SUR']
+      },
+      { id: 'f_value', placeholder: 'e.g. Santiago CIS', label: 'CIS Name' }
+    ],
+    renderItem(item) {
+      return { code: item.province || '', text: item.cis_name || item.value, sub: '' };
+    }
+  }
+];
+
+let activeTab = 0;
+let allItems = [];
+const SAVE_URL = '{% url "api_save" %}';
+const DEL_URL  = '{% url "api_delete" %}';
+
+/* ── Tabs ── */
+function renderTabs() {
+  document.getElementById('mlTabs').innerHTML = TABS.map((t, i) =>
+    `<button class="ml-tab ${i === activeTab ? 'active' : ''}" onclick="switchTab(${i})">${t.label}</button>`
+  ).join('');
+}
+
+function switchTab(i) {
+  activeTab = i;
+  document.getElementById('mlSearch').value = '';
+  renderTabs();
+  renderAddForm();
+  loadItems();
+}
+
+/* ── Add Form ── */
+function renderAddForm() {
+  const tab = TABS[activeTab];
+  let html = '';
+  tab.fields.forEach(f => {
+    if (f.type === 'select') {
+      html += `<select id="${f.id}" style="flex:1;min-width:150px;padding:.55rem .85rem;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;font-family:'IBM Plex Sans',sans-serif;background:var(--cream);color:var(--text);">
+        <option value="">— ${f.label} —</option>
+        ${f.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+      </select>`;
+    } else if (f.type === 'textarea') {
+      html += `<input type="text" id="${f.id}" placeholder="${f.placeholder}" title="${f.label}" style="flex:1;min-width:200px;padding:.55rem .85rem;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;font-family:'IBM Plex Sans',sans-serif;background:var(--cream);color:var(--text);">`;
+    } else {
+      html += `<input type="text" id="${f.id}" placeholder="${f.placeholder}" title="${f.label}">`;
+    }
+  });
+  html += `<button class="ml-add-btn" onclick="addItem()">＋ Add</button>`;
+  document.getElementById('mlAddForm').innerHTML = html;
+
+  // Enter key on last input
+  const lastInput = document.querySelector('#mlAddForm input:last-of-type');
+  if (lastInput) lastInput.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+}
+
+/* ── Load Items ── */
+function setStatus(msg) {
+  const s = document.getElementById('mlStatus');
+  document.getElementById('mlStatusText').textContent = msg;
+  s.classList.toggle('show', !!msg);
+}
+
+async function loadItems() {
+  const tab = TABS[activeTab];
+  setStatus('Loading…');
+  document.getElementById('mlList').innerHTML = '';
+  try {
+    const res = await fetch(tab.apiGet);
+    const data = await res.json();
+    allItems = data.items || [];
+  } catch(e) {
+    allItems = [];
+    showToast('Failed to load items', 'error');
+  }
+  setStatus('');
+  filterList();
+}
+
+/* ── Filter / Render List ── */
+function filterList() {
+  const q = document.getElementById('mlSearch').value.toLowerCase();
+  const tab = TABS[activeTab];
+  const filtered = allItems.filter(item =>
+    Object.values(item).some(v => String(v).toLowerCase().includes(q))
+  );
+  document.getElementById('mlCount').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+
+  const list = document.getElementById('mlList');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="ml-empty"><div class="icon">📭</div><div>No items found</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(item => {
+    const r = tab.renderItem(item);
+    return `<div class="ml-item" id="item-${item.id}">
+      ${r.code ? `<span class="ml-item-code">${escHtml(r.code)}</span>` : ''}
+      <div class="ml-item-text">
+        ${escHtml(r.text)}
+        ${r.sub ? `<div class="ml-item-sub">${escHtml(r.sub)}</div>` : ''}
+      </div>
+      <button class="ml-del-btn" onclick="deleteItem(${item.id})" title="Delete">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+/* ── Add Item ── */
+async function addItem() {
+  const tab = TABS[activeTab];
+  const valueEl = document.getElementById('f_value');
+  const value = valueEl ? valueEl.value.trim() : '';
+  if (!value) { valueEl && valueEl.focus(); return; }
+
+  let body = { table: tab.key, value };
+  if (tab.key === 'cis') {
+    const prov = document.getElementById('f_province').value;
+    if (!prov) { showToast('Please select a province', 'error'); return; }
+    body.province = prov;
+  }
+
+  const btn = document.querySelector('.ml-add-btn');
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const res = await fetch(SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (data.created) {
+        showToast('Item added successfully', 'success');
+        tab.fields.forEach(f => { const el = document.getElementById(f.id); if (el) el.value = ''; });
+        await loadItems();
+      } else {
+        showToast('Item already exists', 'error');
+      }
+    } else {
+      showToast(data.error || 'Failed to add item', 'error');
+    }
+  } catch(e) {
+    showToast('Network error', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '＋ Add';
+}
+
+/* ── Delete Item ── */
+async function deleteItem(id) {
+  if (!confirm('Delete this item? This cannot be undone.')) return;
+  const tab = TABS[activeTab];
+
+  const row = document.getElementById(`item-${id}`);
+  if (row) row.style.opacity = '.4';
+
+  try {
+    const res = await fetch(DEL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ table: tab.key, id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      allItems = allItems.filter(i => i.id !== id);
+      showToast('Item deleted', 'success');
+      filterList();
+    } else {
+      showToast(data.error || 'Failed to delete', 'error');
+      if (row) row.style.opacity = '1';
+    }
+  } catch(e) {
+    showToast('Network error', 'error');
+    if (row) row.style.opacity = '1';
+  }
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('mlToast');
+  t.textContent = msg;
+  t.className = `ml-toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2800);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Init ── */
+renderTabs();
+renderAddForm();
+loadItems();
+</script>
+
+{% endblock %}
