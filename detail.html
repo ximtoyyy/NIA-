@@ -1,0 +1,361 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}{{ advice.advice_number }} — NIA{% endblock %}
+{% block content %}
+
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+
+.nia-wrap {
+    background: white;
+    border: 2px solid #222;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    font-family: 'Times New Roman', serif;
+    font-size: 11px;
+    color: #000;
+}
+
+.nia-header {
+    border-bottom: 2px solid #222;
+    text-align: center;
+    padding: 8px 0 6px 0;
+}
+.nia-header .republic  { font-size: 10px; }
+.nia-header .agency    { font-size: 18px; font-weight: bold; }
+.nia-header .tagline   { font-size: 10px; font-style: italic; }
+.nia-header .lungsod   { font-size: 10px; }
+.nia-header .cal-year  { font-size: 10px; font-weight: bold; }
+
+.orig-bar {
+    border-bottom: 1px solid #222;
+    text-align: right;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: bold;
+    background: #f0f0f0;
+    letter-spacing: .05em;
+}
+
+.to-advice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #222;
+}
+.to-cell {
+    border-right: 1px solid #222;
+    padding: 4px 8px;
+}
+.adv-cell { padding: 4px 8px; }
+.adv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+.field-lbl { font-size: 9px; font-weight: bold; margin-bottom: 1px; }
+.field-val { font-size: 11px; font-weight: bold; padding: 1px 3px; border-bottom: 1px dotted #888; min-height: 16px; }
+
+.region-bar {
+    border-bottom: 1px solid #222;
+    text-align: center;
+    padding: 3px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: .04em;
+}
+
+.instr-bar {
+    border-bottom: 1px solid #222;
+    padding: 2px 8px;
+    font-size: 8px;
+    line-height: 1.4;
+}
+
+.fund-bar {
+    display: grid;
+    grid-template-columns: 1fr 130px;
+    border-bottom: 1px solid #222;
+}
+.fund-right {
+    border-left: 1px solid #222;
+    display: grid;
+    grid-template-columns: 70px 1fr;
+}
+.fund-lbl {
+    border-right: 1px solid #222;
+    font-size: 9px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2px;
+}
+.fund-val {
+    font-size: 13px;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    text-align: center;
+    width: 100%;
+    padding: 4px;
+}
+
+.main-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.main-tbl th, .main-tbl td {
+    border: 1px solid #222;
+    vertical-align: top;
+}
+.main-tbl thead th {
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    padding: 3px 4px;
+    background: #000000;
+    color: #ffffff;
+}
+.col-gaa  { width: 115px; }
+.col-obj  { width: 85px; }
+.col-desc { width: 600px; }
+.col-amt  { width: 145px; }
+
+.desc-cell { padding: 3px 5px; }
+.desc-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: underline;
+    margin-bottom: 5px;
+}
+
+.amt-cell { padding: 3px 5px; }
+.total-amt-row {
+    text-align: right;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+}
+.total-val {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: right;
+    width: 115px;
+    padding: 1px 3px;
+}
+
+.words-row td {
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 4px;
+    border: 1px solid #222;
+}
+
+.prov-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 3px 0 1px 0;
+}
+.prov-name {
+    width: 160px;
+    font-weight: bold;
+    font-size: 9px;
+    text-transform: uppercase;
+    border-bottom: 1px dotted #aaa;
+    padding: 0 3px;
+    height: 16px;
+    line-height: 16px;
+    font-family: 'Times New Roman', serif;
+}
+.prov-total {
+    width: 110px;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 0 3px;
+    height: 16px;
+    line-height: 16px;
+}
+.cis-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 1px 0;
+    padding-left: 16px;
+}
+.cis-name {
+    width: 160px;
+    font-size: 9px;
+    border-bottom: 1px dotted #ccc;
+    padding: 0 3px;
+    height: 16px;
+    line-height: 16px;
+    font-family: 'Times New Roman', serif;
+}
+.cis-amt {
+    width: 110px;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 0 3px;
+    height: 16px;
+    line-height: 16px;
+}
+
+.action-bar {
+    max-width: 1080px;
+    margin: 10px auto;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+</style>
+
+<div class="nia-wrap">
+
+    <!-- HEADER -->
+    <div class="nia-header">
+        <div class="republic">Republika ng Pilipinas</div>
+        <div class="agency">National Irrigation Administration</div>
+        <div class="tagline">(Pambansang Pangasiwaan ng Patubig)</div>
+        <div class="lungsod">Lungsod ng Quezon</div>
+        <div class="cal-year">Calendar Year &nbsp; {{ advice.calendar_year }}</div>
+    </div>
+
+    <!-- ORIGINAL COPY -->
+    <div class="orig-bar">✦ ORIGINAL COPY ✦</div>
+
+    <!-- TO + ADVICE -->
+    <div class="to-advice">
+        <div class="to-cell">
+            <div class="field-lbl">To:</div>
+            <div class="field-val">{{ advice.to_office }}</div>
+            <div class="field-val" style="margin-top:2px;">{{ advice.to_location }}</div>
+        </div>
+        <div class="adv-cell">
+            <div class="adv-grid">
+                <div>
+                    <div class="field-lbl">Advice of Sub-Allotment Number:</div>
+                    <div class="field-val">{{ advice.advice_number }}</div>
+                </div>
+                <div>
+                    <div class="field-lbl">Date:</div>
+                    <div class="field-val">{{ advice.date|date:"m/d/Y" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGION -->
+    <div class="region-bar">REGION &nbsp; {{ advice.region }}</div>
+
+    <!-- INSTRUCTION -->
+    <div class="instr-bar">
+        The following sub-allotment have been made available for expenditures of &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        for the period stated below. It is your primary responsibility to keep expenditures within the limits of the amount sub-allotted as herein stated.
+        Pursuant to Sec. 47, PD 1177, the incurrence of overdraft is prohibited. Parties responsible for incurrence of overdraft shall be held personally liable therefor.
+        It is understood that disbursements should be in accordance with accounting and auditing rules and regulations.
+    </div>
+
+    <!-- FUND CODE -->
+    <div class="fund-bar">
+        <div style="padding:3px 8px;"></div>
+        <div class="fund-right">
+            <div class="fund-lbl">FUND<br>CODE</div>
+            <div class="fund-val">{{ advice.fund_code }}</div>
+        </div>
+    </div>
+
+    <!-- MAIN TABLE -->
+    <table class="main-tbl">
+        <thead>
+            <tr>
+                <th class="col-gaa">GAA/SARO No.</th>
+                <th class="col-obj">OBJECT CODE</th>
+                <th class="col-desc">DESCRIPTION</th>
+                <th class="col-amt">AMOUNT</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding:4px 5px;vertical-align:top;font-size:10px;font-weight:bold;">
+                    {{ advice.gaa_saro_number }}
+                </td>
+                <td style="padding:4px 5px;vertical-align:top;text-align:center;font-size:10px;">
+                    {{ advice.object_code }}
+                </td>
+                <td class="desc-cell">
+                    <div class="desc-title">{{ advice.description }}</div>
+                    {% for prov in advice.province_allotments.all %}
+                    <div class="prov-row">
+                        <div class="prov-name">{{ prov.province_name }}</div>
+                        <div class="prov-total">{{ prov.province_total|floatformat:2 }}</div>
+                    </div>
+                    {% for cis in prov.cis_allotments.all %}
+                    <div class="cis-row">
+                        <div class="cis-name">{{ cis.cis_name }}</div>
+                        <div class="cis-amt">{{ cis.amount|floatformat:2 }}</div>
+                    </div>
+                    {% endfor %}
+                    <div style="height:3px;"></div>
+                    {% endfor %}
+                </td>
+                <td class="amt-cell">
+                    <div class="total-amt-row">
+                        Php<span class="total-val">{{ advice.total_amount|floatformat:2 }}</span>
+
+                    </div>
+                    {% for prov in advice.province_allotments.all %}
+<div style="height:18px;margin:3px 0 1px 0;"></div>
+{% for cis in prov.cis_allotments.all %}
+<div style="height:18px;margin:1px 0;"></div>
+{% endfor %}
+<div style="height:3px;"></div>
+{% endfor %}  
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr class="words-row">
+                <td colspan="4" id="words-out">*** {{ advice.amount_in_words|default:"ZERO PESOS" }} ***</td>
+            </tr>
+        </tfoot>
+    </table>
+
+</div>
+
+<div class="action-bar">
+    <a href="{% url 'index' %}{% if fund %}?fund={{ fund }}{% endif %}" class="btn btn-outline" style="padding:.65rem 2rem;">← Records</a>
+    <a href="{% url 'edit_advice' advice.pk %}" class="btn btn-primary" style="padding:.65rem 2rem;">✏️ Edit</a>
+    <a href="{% url 'delete_advice' advice.pk %}" class="btn btn-danger" style="padding:.65rem 2rem;">🗑️ Delete</a>
+</div>
+
+<script>
+document.querySelectorAll('.prov-total, .cis-amt, .total-val').forEach(el => {
+    let n = parseFloat(el.textContent.replace(/,/g,''));
+    if (!isNaN(n)) el.textContent = n.toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+});
+
+const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function n2w(n){ n=Math.floor(n); if(!n) return 'Zero'; if(n<20) return ones[n]; if(n<100) return tens[Math.floor(n/10)]+(n%10?' '+ones[n%10]:''); if(n<1000) return ones[Math.floor(n/100)]+' Hundred'+(n%100?' '+n2w(n%100):''); if(n<1e6) return n2w(Math.floor(n/1000))+' Thousand'+(n%1000?' '+n2w(n%1000):''); if(n<1e9) return n2w(Math.floor(n/1e6))+' Million'+(n%1e6?' '+n2w(n%1e6):''); return n2w(Math.floor(n/1e9))+' Billion'+(n%1e9?' '+n2w(n%1e9):''); }
+
+const totalEl = document.querySelector('.total-val');
+const total = parseFloat(totalEl ? totalEl.textContent.replace(/,/g,'') : '0') || 0;
+const ip=Math.floor(total), dp=Math.round((total-ip)*100);
+let w = n2w(ip)+' Pesos'+(dp?' and '+n2w(dp)+' Centavos':'');
+document.getElementById('words-out').textContent = '*** ' + w.toUpperCase() + ' ***';
+</script>
+
+{% endblock %}
