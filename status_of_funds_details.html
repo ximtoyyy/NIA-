@@ -1,0 +1,98 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}Status of Funds — {{ fund_label }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Status of Funds — {{ fund_label }}</h1>
+        <div class="subtitle">Statement of Allotment Obligations, Disbursements and Balances</div>
+    </div>
+    <div style="display:flex;gap:.5rem;">
+        <a href="{% url 'status_of_funds_list' %}?fund={{ record.fund_type }}" class="btn btn-outline btn-sm">← Back</a>
+        <button onclick="window.print()" class="btn btn-gold btn-sm">🖨 Print</button>
+    </div>
+</div>
+
+<style>
+    .sof-header{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.5rem;margin-bottom:1rem;}
+    .sof-header p{font-size:.82rem;color:var(--text-muted);line-height:1.6;}
+    .sof-header p strong{color:var(--text);}
+    .sof-wrap{overflow-x:auto;}
+    .sof-table{width:100%;border-collapse:collapse;font-size:.72rem;min-width:1400px;}
+    .sof-table th,.sof-table td{border:1px solid #c0bdb5;padding:.35rem .45rem;}
+    .sof-table thead tr th{background:var(--navy);color:white;text-align:center;font-size:.68rem;letter-spacing:.04em;}
+    .sof-table thead tr.sub-head th{background:var(--navy-mid);font-size:.65rem;}
+    .sof-table tbody tr:hover{background:#f5f3ee;}
+    .sof-table .category-row td{background:#e8f0fe;font-weight:700;font-size:.72rem;color:var(--navy);padding:.4rem .45rem;}
+    .sof-table .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:.7rem;}
+    .sof-table .total-row td{background:#fef3c7;font-weight:700;}
+    .sof-table .total-row .num{color:var(--navy);}
+    @media print {
+        nav, .page-header, .btn { display: none !important; }
+        .sof-wrap { overflow: visible; }
+        .sof-table { font-size: 6.5pt; min-width: unset; }
+        .sof-table th, .sof-table td { padding: 2pt 3pt; }
+    }
+</style>
+
+<div class="sof-header">
+    <p><strong>STATEMENT OF ALLOTMENT OBLIGATIONS, DISBURSEMENTS AND BALANCES</strong></p>
+    <p>As of {{ record.as_of_date|date:"F d, Y" }} &nbsp;|&nbsp; CY {{ record.as_of_date|date:"Y" }} ALLOCATION</p>
+    <p>DEPARTMENT/AGENCY: {{ record.department_agency }}</p>
+    <p>{{ record.fund_code }} &nbsp;|&nbsp; {{ record.region }}</p>
+</div>
+
+<div class="card">
+    <div class="sof-wrap">
+        <table class="sof-table">
+            <thead>
+                <tr>
+                    <th rowspan="3" style="width:200px;">Name of Projects/<br>Activities/Programs</th>
+                    <th rowspan="3" style="width:120px;">ASA NO.</th>
+                    <th rowspan="3">ALLOTMENT<br>RECEIVED</th>
+                    <th rowspan="3">ADA<br>RECEIVED</th>
+                    <th colspan="4">OBLIGATION</th>
+                    <th colspan="3">DISBURSEMENTS</th>
+                    <th colspan="3">BALANCE</th>
+                </tr>
+                <tr class="sub-head">
+                    <th>THIS REPORT<br><small>{{ record.report_month }}</small></th>
+                    <th>PREVIOUS<br><small>{{ record.previous_month }}</small></th>
+                    <th>TO DATE</th>
+                    <th>BALANCE</th>
+                    <th>THIS REPORT<br><small>{{ record.report_month }}</small></th>
+                    <th>PREVIOUS<br><small>{{ record.previous_month }}</small></th>
+                    <th>TOTAL<br>LIQUIDATION</th>
+                    <th>UNOBLIGATED<br>ALLOTMENT</th>
+                    <th>UNPAID<br>OBLIGATIONS</th>
+                    <th>PC</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in record.entries.all %}
+                {% if entry.category %}
+                <tr class="category-row">
+                    <td colspan="14">{{ entry.category }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>{{ entry.project_name }}</td>
+                    <td style="font-size:.65rem;">{{ entry.asa_number }}</td>
+                    <td class="num">{% if entry.allotment_received %}{{ entry.allotment_received|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.ada_received %}{{ entry.ada_received|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.obligation_this_report %}{{ entry.obligation_this_report|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.obligation_previous %}{{ entry.obligation_previous|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.obligation_to_date %}{{ entry.obligation_to_date|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.obligation_balance %}{{ entry.obligation_balance|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.disbursement_this_report %}{{ entry.disbursement_this_report|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.disbursement_previous %}{{ entry.disbursement_previous|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.disbursement_total_liquidation %}{{ entry.disbursement_total_liquidation|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.balance_unobligated %}{{ entry.balance_unobligated|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.balance_unpaid %}{{ entry.balance_unpaid|floatformat:2 }}{% endif %}</td>
+                    <td class="num">{% if entry.balance_pc %}{{ entry.balance_pc|floatformat:2 }}{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
