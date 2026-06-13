@@ -1,0 +1,684 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}{{ office }} — {{ province }} Program of Work{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ office }} — {{ province }}</h1>
+        <div class="subtitle">Program of Work</div>
+    </div>
+    <button onclick="saveTable()" class="btn btn-primary">💾 Save</button>
+</div>
+
+<div class="card">
+    <div class="card-header">📋 Program of Work — <span class="accent">{{ province }}</span></div>
+
+</table>
+
+
+    <div class="table-wrap">
+
+        <table id="powTable">
+            <thead>
+                <tr>
+                    <th style="width:180px;">
+                        ASA # — <span class="accent" id="asaLabel">{{ advice.advice_number|default:"—" }}</span>
+                    </th>
+                    <th>
+                        <div style="position:relative;">
+                            <input type="text" id="asaSearch"
+                                   value="{{ advice.advice_number|default:'' }}"
+                                   placeholder="Search ASA#…"
+                                   autocomplete="off"
+                                   style="width:100%;box-sizing:border-box;padding:.35rem 2rem .35rem .7rem;
+                                          border:1.5px solid #4a6080;border-radius:4px;
+                                          background:rgba(255,255,255,0.08);color:#fff;
+                                          font-size:.85rem;font-family:'IBM Plex Sans',sans-serif;outline:none;">
+                            <span style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
+                                         color:#94a3b8;font-size:.85rem;">🔍</span>
+                            <div id="asaSuggestions"
+                                 style="display:none;position:absolute;top:100%;left:0;width:100%;
+                                        background:#fff;border:1px solid #d1c9b8;border-radius:6px;
+                                        box-shadow:0 8px 24px rgba(10,22,40,.12);z-index:9999;
+                                        max-height:220px;overflow-y:auto;margin-top:4px;">
+                            </div>
+                        </div>
+                    </th>
+                    <th style="text-align:center;font-weight:600;color:#fff;font-size:.85rem;letter-spacing:.05em;vertical-align:bottom;">
+                        IMO
+                    </th>
+                    <th style="text-align:center;font-weight:600;color:#fff;font-size:.85rem;letter-spacing:.05em;vertical-align:bottom;">
+                        <div id="asaTotalAmount" style="font-size:.75rem;color:#f0c060;font-weight:500;margin-bottom:2px;">
+                            {% if advice.total_amount %}₱{{ advice.total_amount|floatformat:2 }}{% else %}—{% endif %}
+                        </div>
+                        MO
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="{% if item == 'TOTAL' %}total-row{% endif %}">
+                    <td><strong>{{ item }}</strong></td>
+                    {% if item == 'TOTAL' %}
+                        <td style="text-align:right;font-weight:700;">0.00</td>
+                        <td style="text-align:right;font-weight:700;">0.00</td>
+                        <td style="text-align:right;font-weight:700;">0.00</td>
+                    {% else %}
+                        <td><input type="number" class="cell-input" placeholder="0.00" step="0.01"></td>
+                        <td><input type="number" class="cell-input" placeholder="0.00" step="0.01"></td>
+                        <td><input type="number" class="cell-input" placeholder="0.00" step="0.01"></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+        <!-- Action Buttons -->
+<div style="display:flex;justify-content:flex-end;gap:.5rem;padding:1rem 0 .5rem;">
+    <button onclick="editTable()" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:.4rem;">
+        ✏️ Edit
+    </button>
+    <button onclick="previewTable()" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:.4rem;">
+        👁️ Preview
+    </button>
+    <button onclick="deleteTable()" class="btn btn-sm" style="display:flex;align-items:center;gap:.4rem;
+            background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;">
+        🗑️ Delete
+    </button>
+</div>    
+    </div>
+</div>
+
+
+<input type="hidden" id="initialAsaPk" value="{{ advice.pk|default:'' }}">
+<input type="hidden" id="initialBudget" value="{{ advice.total_amount|default:0 }}"> 
+
+<style>
+.cell-input.over-budget {
+    border: 1.5px solid #ef4444;
+    background: #fff5f5;
+    color: #dc2626;
+}
+.total-mismatch {
+    color: #ef4444 !important;
+}
+.total-match {
+    color: #16a34a !important;
+}
+.budget-warning {
+    font-size: .75rem;
+    color: #ef4444;
+    margin-top: 4px;
+    display: none;
+}
+.cell-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: .85rem;
+    padding: .35rem .6rem;
+    border-radius: 4px;
+    outline: none;
+    border: 1.5px solid #cbd5e1;
+    background: #f8faff;
+    color: #0a1628;
+    text-align: right;
+}
+.cell-input:focus {
+    border: 1.5px solid #3b82f6;
+    background: #f0f7ff;
+}
+.total-row {
+    background: #f8f5ef;
+    font-weight: 700;
+    border-top: 2px solid #cbd5e1;
+}
+.total-row td {
+    border-top: 2px solid #cbd5e1;
+}
+#asaSearch:focus {
+    border: 1.5px solid #93c5fd;
+    background: rgba(255,255,255,0.15);
+}
+</style>
+
+<script>
+
+// ── ASA# search ───────────────────────────────────────────
+const asaInput      = document.getElementById('asaSearch');
+const asaLabel      = document.getElementById('asaLabel');
+const asaBox        = document.getElementById('asaSuggestions');
+const asaTotalEl    = document.getElementById('asaTotalAmount');
+let selectedAsaPk   = document.getElementById('initialAsaPk').value || null;
+let budgetAmount = parseFloat(document.getElementById('initialBudget').value) || 0;
+let asaTimer;
+
+asaInput.addEventListener('input', function () {
+    clearTimeout(asaTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { asaBox.style.display = 'none'; return; }
+
+    asaTimer = setTimeout(() => {
+        fetch(`/?q=${encodeURIComponent(q)}`, {
+            headers: { 'x-requested-with': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.results.length) {
+                asaBox.innerHTML = `
+                    <div style="padding:.65rem 1rem;font-size:.85rem;color:#4a5568;">
+                        No results for "<strong>${q}</strong>"
+                    </div>`;
+                asaBox.style.display = 'block';
+                return;
+            }
+            asaBox.innerHTML = data.results.map(item => `
+    <div onclick="selectAsa(
+        '${item.advice_number.replace(/'/g, "\\'")}',
+        ${item.pk},
+        '${item.total_amount}',
+        decodeURIComponent('${encodeURIComponent(JSON.stringify(item.cis_list || []))}')
+    )"
+    style="padding:.65rem 1rem;cursor:pointer;border-bottom:0.5px solid #f0ebe0;font-size:.85rem;"
+    onmouseover="this.style.background='#f0ebe0'"
+    onmouseout="this.style.background='#fff'">
+        <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#0a1628;">
+            ${item.advice_number}
+        </div>
+    </div>
+`).join('');
+            asaBox.style.display = 'block';
+        })
+        .catch(() => asaBox.style.display = 'none');
+    }, 250);
+});
+
+let selectedCisList = [];
+
+function selectAsa(adviceNumber, pk, totalAmount, cisList) {
+    asaInput.value       = adviceNumber;
+    asaLabel.textContent = adviceNumber;
+    selectedAsaPk        = pk;
+    selectedCisList      = cisList || [];
+    asaBox.style.display = 'none';
+
+    if (totalAmount && totalAmount !== 'None') {
+        const formatted = parseFloat(totalAmount).toLocaleString('en-PH', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+        asaTotalEl.textContent = '₱' + formatted;
+        budgetAmount = parseFloat(totalAmount) || 0;
+    } else {
+        asaTotalEl.textContent = '—';
+        budgetAmount = 0;
+    }
+
+    updateTotals();
+}
+
+document.addEventListener('click', function (e) {
+    if (!asaInput.contains(e.target) && !asaBox.contains(e.target)) {
+        asaBox.style.display = 'none';
+    }
+});
+
+// ── Auto-total + validation ───────────────────────────────
+document.querySelectorAll('.cell-input').forEach(input => {
+    input.addEventListener('input', updateTotals);
+});
+
+function updateTotals() {
+    const rows       = document.querySelectorAll('#powTable tbody tr:not(.total-row)');
+    const totalCells = document.querySelectorAll('.total-row td:not(:first-child)');
+    const colTotals  = [];
+
+    totalCells.forEach((cell, col) => {
+        let sum = 0;
+        rows.forEach(row => {
+            const input = row.querySelectorAll('input')[col];
+            if (input) sum += parseFloat(input.value) || 0;
+        });
+        colTotals.push(sum);
+        cell.textContent = sum.toLocaleString('en-PH', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+    });
+
+    validateBudget(colTotals);
+    validateColumnMatch(colTotals);
+}
+
+function validateBudget(colTotals) {
+    // col 0 = ASA# (POW) column — check against budget
+    if (!budgetAmount) return;
+
+    const powTotal   = colTotals[0] || 0;
+    const totalCells = document.querySelectorAll('.total-row td:not(:first-child)');
+    const powCell    = totalCells[0];
+
+    // remove old warning
+    const oldWarn = document.getElementById('budgetWarning');
+    if (oldWarn) oldWarn.remove();
+
+    if (powTotal > budgetAmount) {
+        powCell.classList.add('total-mismatch');
+        powCell.classList.remove('total-match');
+
+        // show warning below table
+        const warn = document.createElement('div');
+        warn.id = 'budgetWarning';
+        warn.style.cssText = 'color:#ef4444;font-size:.8rem;padding:.5rem 1rem;background:#fff5f5;border:1px solid #fca5a5;border-radius:6px;margin-top:.5rem;';
+        warn.innerHTML = `⚠️ POW total <strong>${powTotal.toLocaleString('en-PH', {minimumFractionDigits:2})}</strong> exceeds budget of <strong>₱${budgetAmount.toLocaleString('en-PH', {minimumFractionDigits:2})}</strong>`;
+        document.querySelector('.table-wrap').after(warn);
+    } else if (powTotal === budgetAmount) {
+        powCell.classList.add('total-match');
+        powCell.classList.remove('total-mismatch');
+    } else {
+        powCell.classList.remove('total-mismatch', 'total-match');
+    }
+}
+
+function validateColumnMatch(colTotals) {
+    // check if IMO and MO columns match POW column
+    const totalCells = document.querySelectorAll('.total-row td:not(:first-child)');
+    const powTotal   = colTotals[0] || 0;
+
+    [1, 2].forEach(col => {
+        const cell     = totalCells[col];
+        const colTotal = colTotals[col] || 0;
+
+        // remove old mismatch warning for this col
+        const oldWarn = document.getElementById(`colWarning${col}`);
+        if (oldWarn) oldWarn.remove();
+
+        if (powTotal > 0 && colTotal !== powTotal) {
+            cell.classList.add('total-mismatch');
+            cell.classList.remove('total-match');
+
+            const warn = document.createElement('div');
+            warn.id = `colWarning${col}`;
+            warn.style.cssText = 'color:#ef4444;font-size:.8rem;padding:.5rem 1rem;background:#fff5f5;border:1px solid #fca5a5;border-radius:6px;margin-top:.5rem;';
+            warn.innerHTML = `⚠️ <strong>${col === 1 ? 'IMO' : 'MO'}</strong> total <strong>${colTotal.toLocaleString('en-PH', {minimumFractionDigits:2})}</strong> does not match POW total <strong>${powTotal.toLocaleString('en-PH', {minimumFractionDigits:2})}</strong>`;
+            document.querySelector('.table-wrap').after(warn);
+        } else if (powTotal > 0 && colTotal === powTotal) {
+            cell.classList.add('total-match');
+            cell.classList.remove('total-mismatch');
+        } else {
+            cell.classList.remove('total-mismatch', 'total-match');
+        }
+    });
+}
+
+// ── Save ──────────────────────────────────────────────────
+function saveTable() {
+    if (!selectedAsaPk) {
+        alert('Please select an ASA# first before saving.');
+        asaInput.focus();
+        return;
+    }
+
+    // block save if there are validation errors
+    const mismatch = document.querySelector('.total-mismatch');
+    if (mismatch) {
+        alert('⚠️ Please fix the errors before saving.\n\n• POW total must not exceed the budget.\n• IMO and MO totals must match the POW total.');
+        return;
+    }
+
+    const rows = document.querySelectorAll('#powTable tbody tr');
+    const data = [];
+
+    rows.forEach(row => {
+        const itemEl = row.querySelector('td strong');
+        if (!itemEl) return;
+        const values = [...row.querySelectorAll('input')].map(i => i.value);
+        data.push({ item: itemEl.textContent, values });
+    });
+
+    fetch("/province/save/", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({
+            office:        '{{ office }}',
+            province:      '{{ province }}',
+            advice_number: asaInput.value,
+            advice_pk:     selectedAsaPk,
+            data,
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.ok) alert('✅ Saved successfully!');
+        else alert('Error saving: ' + res.error);
+    });
+}
+function editTable() {
+    document.querySelectorAll('.cell-input').forEach(input => {
+        input.disabled = false;
+        input.style.background = '#f8faff';
+        input.style.cursor = 'text';
+    });
+    document.querySelector('[onclick="saveTable()"]').style.display = 'inline-flex';
+    alert('You can now edit the table. Click 💾 Save when done.');
+}
+
+function previewTable() {
+    if (!selectedAsaPk) {
+        alert('No ASA# selected.');
+        return;
+    }
+
+    const asaNumber = asaInput.value;
+    const budget    = budgetAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const fmt       = n => parseFloat(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // get values from the POW table per item
+    const powData = {};
+    document.querySelectorAll('#powTable tbody tr:not(.total-row)').forEach(row => {
+        const itemEl = row.querySelector('td strong');
+        if (!itemEl) return;
+        const inputs = row.querySelectorAll('input');
+        powData[itemEl.textContent.trim()] = {
+            col0: parseFloat(inputs[0]?.value) || 0,
+            col1: parseFloat(inputs[1]?.value) || 0,
+            col2: parseFloat(inputs[2]?.value) || 0,
+        };
+    });
+
+    // build CIS rows — each CIS is a system row
+    const cisList = selectedCisList.length ? selectedCisList : ['(No CIS found)'];
+
+    let tableRows = '';
+    let totCW=0, totFAW=0, totIDP=0, totFSSM=0, totCS=0, totROW=0, totPM=0, totAmt=0;
+
+    cisList.forEach(cis => {
+        // distribute amounts evenly across CIS or leave blank for manual fill
+        const cw   = powData['CONTRACT WORKS']?.col0 / cisList.length || 0;
+        const faw  = powData['FAW']?.col0              / cisList.length || 0;
+        const idp  = powData['IDP']?.col0              / cisList.length || 0;
+        const fssm = powData['FSSM']?.col0             / cisList.length || 0;
+        const cs   = powData['CONSTRUCTION SURVEY']?.col0 / cisList.length || 0;
+        const row  = powData['ROW']?.col0              / cisList.length || 0;
+        const pm   = powData['PM']?.col0               / cisList.length || 0;
+        const amt  = cw + faw + idp + fssm + cs + row + pm;
+
+        totCW+=cw; totFAW+=faw; totIDP+=idp; totFSSM+=fssm;
+        totCS+=cs; totROW+=row; totPM+=pm; totAmt+=amt;
+
+        tableRows += `
+            <tr>
+                <td style="padding:.35rem .5rem;border:1px solid #000;">${cis}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${cw ? fmt(cw) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${faw ? fmt(faw) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${idp ? fmt(idp) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fssm ? fmt(fssm) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${cs ? fmt(cs) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${row ? fmt(row) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${pm ? fmt(pm) : ''}</td>
+                <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${amt ? fmt(amt) : ''}</td>
+            </tr>`;
+    });
+
+    // total row
+    tableRows += `
+        <tr style="font-weight:bold;background:#f0f0f0;">
+            <td style="padding:.35rem .5rem;border:1px solid #000;">TOTAL</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totCW)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totFAW)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totIDP)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totFSSM)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totCS)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totROW)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totPM)}</td>
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(totAmt)}</td>
+        </tr>`;
+
+}
+function deleteTable() {
+    if (!selectedAsaPk) {
+        alert('No ASA# selected.');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the POW record for\n${asaInput.value} — {{ province }}?\n\nThis cannot be undone.`)) return;
+
+    fetch("/province/save/", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({
+            delete:     true,
+            office:     '{{ office }}',
+            province:   '{{ province }}',
+            advice_pk:  selectedAsaPk,
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.ok) {
+            alert('Record deleted successfully.');
+            // clear the table
+            document.querySelectorAll('.cell-input').forEach(i => i.value = '');
+            asaInput.value       = '';
+            asaLabel.textContent = '—';
+            asaTotalEl.textContent = '—';
+            selectedAsaPk = null;
+            updateTotals();
+        } else {
+            alert('Error deleting: ' + res.error);
+        }
+    });
+}
+
+function previewTable() {
+    if (!selectedAsaPk) {
+        alert('No ASA# selected.');
+        return;
+    }
+
+    const rows      = document.querySelectorAll('#powTable tbody tr');
+    const asaNumber = asaInput.value;
+    const province  = '{{ province }}';
+    const office    = '{{ office }}';
+    const budget    = budgetAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+    const fmt = n => n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const itemColMap = {
+    'CIVIL WORKS/CONTRACT WORKS':        0,
+    'CONTRACT WORKS':                    0,
+    'FORCE ACCOUNT WORKS/ADMIN WORKS':   1,
+    'FAW':                               1,
+    'INSTITUTIONAL DEVELOPMENT PROGRAM': 2,
+    'IDP':                               2,
+    'FIELD SUPERIOR SUPPORT MONITORING': 3,
+    'FSSM':                              3,
+    'CONSTRUCTION SURVEY':               4,
+    'PARCELLARY MAP':                    5,
+    'PM':                                5,
+    'RIGHT OF WAY':                      6,
+    'ROW':                               6,
+    'ENVIRONMENTAL IMPACT C':            7,
+};
+
+const powRows = [];
+document.querySelectorAll('#powTable tbody tr:not(.total-row)').forEach(row => {
+    const itemEl = row.querySelector('td strong');
+    if (!itemEl) return;
+    const inputs = row.querySelectorAll('input');
+    const val = parseFloat(inputs[0]?.value) || 0;
+    powRows.push({ item: itemEl.textContent.trim(), val });
+});
+
+let tableRows = '';
+const colTotals = new Array(8).fill(0);
+let grandTotal = 0;
+
+powRows.forEach(({ item, val }) => {
+    const colIdx = itemColMap[item] ?? -1;
+    const cells  = new Array(8).fill('');
+    if (colIdx >= 0 && val) {
+        cells[colIdx] = fmt(val);
+        colTotals[colIdx] += val;
+        grandTotal += val;
+    }
+    const rowTotal = val ? fmt(val) : '';
+    tableRows += `
+        <tr>
+            <td style="padding:.35rem .5rem;border:1px solid #000;">${item}</td>
+            ${cells.map(c => `<td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${c}</td>`).join('')}
+            <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${rowTotal}</td>
+        </tr>`;
+});
+
+tableRows += `
+    <tr style="font-weight:bold;background:#f0f0f0;">
+        <td style="padding:.35rem .5rem;border:1px solid #000;">TOTAL</td>
+        ${colTotals.map(v => `<td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${v ? fmt(v) : '0.00'}</td>`).join('')}
+        <td style="padding:.35rem .5rem;border:1px solid #000;text-align:right;">${fmt(grandTotal)}</td>
+    </tr>`;
+
+    const win = window.open('', '_blank', 'width=1100,height=750');
+    win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Advice for Sub-Allotment — ${asaNumber}</title>
+            <style>
+                * { margin:0; padding:0; box-sizing:border-box; }
+                body { font-family: Arial, sans-serif; font-size: 10.5px; padding: 1.5rem 2rem; color: #000; }
+                .header-top { text-align:center; margin-bottom:.5rem; }
+                .header-top h3 { font-size:13px; font-weight:bold; text-transform:uppercase; }
+                .title-box { text-align:center; margin:.75rem 0; }
+                .title-box h2 { font-size:13px; font-weight:bold; text-transform:uppercase; border:2px solid #000; display:inline-block; padding:.3rem 1.5rem; }
+                .meta-row { display:flex; gap:.5rem; margin-bottom:.25rem; }
+                .meta-row .label { min-width:130px; font-weight:bold; }
+                table { width:100%; border-collapse:collapse; margin:.5rem 0; font-size:10px; }
+                th { border:1px solid #000; padding:.35rem .5rem; text-align:center; font-weight:bold; background:#f0f0f0; }
+                .sig-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:2rem; font-size:10px; text-align:center; }
+                .sig-name { font-weight:bold; text-transform:uppercase; margin-top:1.5rem; border-top:1px solid #000; padding-top:.2rem; }
+                .ref { position:fixed; top:1rem; right:2rem; font-size:9px; }
+                @media print { button { display:none !important; } .ref { position:absolute; } }
+            </style>
+        </head>
+        <body>
+            <div class="ref">NIA-AFD-FS-BU-INT-0001-00</div>
+
+            <div class="header-top">
+                <p>Republika ng Pilipinas</p>
+                <h3>Pambansang Pangasiwaan ng Patubig</h3>
+                <p>(National Irrigation Administration)</p>
+                <h3>CARAGA ADMINISTRATIVE REGION</h3>
+                <p>Region 13, Butuan City</p>
+            </div>
+
+            <div class="title-box"><h2>Advice for Sub-Allotment</h2></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem;">
+                <div>
+                    <div class="meta-row"><span class="label">PROGRAM (Number &amp; Title):</span><span>_______________</span></div>
+                    <div class="meta-row"><span class="label">For the Quarter Ending:</span><span>_______________</span></div>
+                    <div class="meta-row"><span class="label">TO:</span></div>
+                    <div class="meta-row"><span class="label">LOCATION:</span><span>{{ province }}</span></div>
+                    <p style="font-size:9px;margin-top:.5rem;line-height:1.5;">
+                        The following sub-allotments have been made available for the expenditures of your office
+                        for the quarter stated above. It is the primary responsibility of the Provincial Irrigation
+                        Officer/Irrigation Superintendent to keep the expenditures within the limits of the amount
+                        sub-alloted as herein stated pursuant to Section 20, Republic Act No. 992. The incurrence
+                        of overdraft is prohibited. Parties responsible for the incurrence of overdraft should be
+                        held personally liable. Therefore, it is understood that disbursements should be in
+                        accordance with accounting and auditing rules and regulations.
+                    </p>
+                </div>
+                <div>
+                    <div class="meta-row"><span class="label">Calendar Year:</span><span>2026</span></div>
+                    <div class="meta-row"><span class="label">ASA NO.:</span><span style="font-weight:bold;">${asaNumber}</span></div>
+                    <div class="meta-row"><span class="label">SOURCE:</span><span>_______________</span></div>
+                    <div class="meta-row"><span class="label">Fund Code:</span><span>FUND 501 LFPs</span></div>
+                    <div class="meta-row"><span class="label">Date:</span><span>_______________</span></div>
+                    <div class="meta-row"><span class="label">Control No.:</span><span>_______________</span></div>
+                </div>
+            </div>
+
+            <div style="font-size:10px;margin-bottom:.3rem;">
+                <strong>SATELLITE HEAD</strong> &nbsp;&nbsp;
+                <strong>SATELLITE OFFICE:</strong> SURIGAO DEL NORTE - SATELLITE OFFICE
+            </div>
+            <div style="font-size:10px;margin-bottom:.3rem;">
+                <strong>ADDRESS:</strong> &nbsp;&nbsp;
+                <strong>NAME OF OFFICE (PIONÍS):</strong> &nbsp;&nbsp;
+                <strong>P.D. NO.:</strong>
+            </div>
+            <div style="font-size:10px;margin-bottom:.3rem;">
+                <strong>GAO/SARO NO.:</strong> &nbsp; RO-BMB-C-26-00243S &nbsp; 16200406904000070
+            </div>
+            <div style="font-size:10px;margin-bottom:.5rem;"><strong>RA 12314 &nbsp; GAA 2026</strong></div>
+
+            <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width:22%;">SYSTEM</th>
+                    <th colspan="8">DESCRIPTION</th>
+                    <th rowspan="2">AMOUNT</th>
+                </tr>
+                <tr>
+                    <th>CONTRACT WORKS</th>
+                    <th>FORCE ACCOUNT WORKS/ADMIN WORKS</th>
+                    <th>INSTITUTIONAL DEVELOPMENT PROGRAM</th>
+                    <th>FIELD SUPERIOR SUPPORT MONITORING</th>
+                    <th>CONSTRUCTION SURVEY</th>
+                    <th>PARCELLARY MAP</th>
+                    <th>RIGHT OF WAY</th>
+                    <th>ENVIRONMENTAL IMPACT C</th>
+                </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+        </table>
+
+            <div style="font-style:italic;font-size:10px;margin:.5rem 0;">
+                *"${budget} PESOS ONLY"*
+            </div>
+
+            <div class="sig-grid">
+                <div>
+                    <div>CERTIFIED CORRECT:</div>
+                    <div style="height:1.5rem;border-bottom:1px solid #000;margin-top:1.5rem;"></div>
+                    <div class="sig-name">GODOFREDO P. ABUZO IV</div>
+                    <div>Chief Corporate Accountant B</div>
+                    <div>GLN-___</div>
+                </div>
+                <div>
+                    <div>RECOMMENDING APPROVAL:</div>
+                    <div style="height:1.5rem;border-bottom:1px solid #000;margin-top:1.5rem;"></div>
+                    <div class="sig-name">JOSIE M. GAMALLO</div>
+                    <div>Acting Division Manager A-AFD</div>
+                </div>
+                <div>
+                    <div>APPROVED:</div>
+                    <div style="height:1.5rem;border-bottom:1px solid #000;margin-top:1.5rem;"></div>
+                    <div class="sig-name">RUBY C. TUAN, JR.</div>
+                    <div>Regional Manager A</div>
+                </div>
+            </div>
+
+            <div style="text-align:center;margin-top:1.5rem;">
+                <button onclick="window.print()"
+                    style="padding:.5rem 1.5rem;background:#0a1628;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:.5rem;">
+                    🖨️ Print
+                </button>
+                <button onclick="window.close()"
+                    style="padding:.5rem 1.5rem;background:#e2e8f0;color:#0a1628;border:none;border-radius:6px;cursor:pointer;">
+                    ✕ Close
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+</script>
+{% endblock %}
