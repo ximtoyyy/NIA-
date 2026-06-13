@@ -1,0 +1,179 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}New Status of Funds — {{ fund_label }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>New Status of Funds — {{ fund_label }}</h1>
+        <div class="subtitle">Statement of Allotment Obligations, Disbursements and Balances</div>
+    </div>
+    <a href="{% url 'status_of_funds_list' %}?fund={{ fund }}" class="btn btn-outline btn-sm">← Cancel</a>
+</div>
+
+<style>
+    .sof-form-table{width:100%;border-collapse:collapse;font-size:.72rem;}
+    .sof-form-table th{background:var(--navy);color:white;padding:.4rem .5rem;text-align:center;font-size:.65rem;letter-spacing:.04em;border:1px solid rgba(255,255,255,.15);}
+    .sof-form-table td{padding:.25rem .3rem;border:1px solid var(--border);}
+    .sof-form-table input{width:100%;padding:.3rem .4rem;border:1px solid var(--border);border-radius:4px;font-size:.7rem;font-family:'IBM Plex Sans',sans-serif;background:white;}
+    .sof-form-table input.num{text-align:right;font-family:'IBM Plex Mono',monospace;}
+    .sof-form-table input:focus{outline:none;border-color:var(--blue-light);}
+    .sof-form-table tr.category-input td{background:#e8f0fe;}
+    .row-actions{display:flex;gap:.3rem;justify-content:center;}
+</style>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="fund_type" value="{{ fund }}">
+    <input type="hidden" name="entries_data" id="entries_data">
+
+    <div class="form-section">
+        <div class="form-section-header"><span class="dot"></span> Report Information</div>
+        <div class="form-section-body">
+            <div class="form-row cols-3">
+                <div class="form-group">
+                    <label>As of Date <span class="req">*</span></label>
+                    <input type="date" name="as_of_date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Report Month (This Report)</label>
+                    <input type="text" name="report_month" class="form-input" placeholder="e.g. December">
+                </div>
+                <div class="form-group">
+                    <label>Previous Month</label>
+                    <input type="text" name="previous_month" class="form-input" placeholder="e.g. November">
+                </div>
+            </div>
+            <div class="form-row cols-2">
+                <div class="form-group">
+                    <label>Department/Agency</label>
+                    <input type="text" name="department_agency" class="form-input" value="DA - (OSEC-DA) - NATIONAL IRRIGATION ADMINISTRATION">
+                </div>
+                <div class="form-group">
+                    <label>Fund Code</label>
+                    <input type="text" name="fund_code" class="form-input" value="FUND 501 {{ fund_label }}">
+                </div>
+            </div>
+            <div class="form-row cols-2">
+                <div class="form-group">
+                    <label>Region</label>
+                    <input type="text" name="region" class="form-input" value="REGION 13, BUTUAN CITY">
+                </div>
+                <div class="form-group">
+                    <label>CY Allocation</label>
+                    <input type="text" name="cy_allocation" class="form-input" placeholder="e.g. 2025">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <div class="form-section-header"><span class="dot"></span> Entries</div>
+        <div class="form-section-body" style="padding:0;overflow-x:auto;">
+            <table class="sof-form-table" id="entries-table">
+                <thead>
+                    <tr>
+                        <th style="width:180px;">Name of Projects/<br>Activities/Programs</th>
+                        <th style="width:110px;">ASA NO.</th>
+                        <th>Allotment<br>Received</th>
+                        <th>ADA<br>Received</th>
+                        <th>Oblig.<br>This Report</th>
+                        <th>Oblig.<br>Previous</th>
+                        <th>Oblig.<br>To Date</th>
+                        <th>Oblig.<br>Balance</th>
+                        <th>Disburs.<br>This Report</th>
+                        <th>Disburs.<br>Previous</th>
+                        <th>Total<br>Liquidation</th>
+                        <th>Unobligated<br>Allotment</th>
+                        <th>Unpaid<br>Obligations</th>
+                        <th>PC</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="entries-body">
+                    <!-- rows added by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:1rem;display:flex;gap:.5rem;">
+            <button type="button" onclick="addRow()" class="btn btn-outline btn-sm">+ Add Row</button>
+            <button type="button" onclick="addCategoryRow()" class="btn btn-sm" style="background:#e8f0fe;color:var(--navy);border:1px solid var(--border);">+ Add Category Header</button>
+        </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;">
+        <a href="{% url 'status_of_funds_list' %}?fund={{ fund }}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary" onclick="prepareSubmit()">Save Record</button>
+    </div>
+</form>
+
+<script>
+let entries = [];
+
+function addRow(data) {
+    data = data || {};
+    const tbody = document.getElementById('entries-body');
+    const idx = entries.length;
+    const entry = {
+        category: '', project_name: '', asa_number: '',
+        allotment_received: '', ada_received: '',
+        obligation_this_report: '', obligation_previous: '', obligation_to_date: '', obligation_balance: '',
+        disbursement_this_report: '', disbursement_previous: '', disbursement_total_liquidation: '',
+        balance_unobligated: '', balance_unpaid: '', balance_pc: '',
+        _type: 'row'
+    };
+    entries.push(entry);
+
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    tr.innerHTML = `
+        <td><input type="text" placeholder="Project name" onchange="update(${idx},'project_name',this.value)"></td>
+        <td><input type="text" placeholder="ASA No." onchange="update(${idx},'asa_number',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'allotment_received',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'ada_received',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'obligation_this_report',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'obligation_previous',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'obligation_to_date',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'obligation_balance',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'disbursement_this_report',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'disbursement_previous',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'disbursement_total_liquidation',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'balance_unobligated',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'balance_unpaid',this.value)"></td>
+        <td><input class="num" type="text" onchange="update(${idx},'balance_pc',this.value)"></td>
+        <td><div class="row-actions"><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-sm">✕</button></div></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function addCategoryRow() {
+    const tbody = document.getElementById('entries-body');
+    const idx = entries.length;
+    entries.push({ category: '', _type: 'category', project_name: '' });
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    tr.classList.add('category-input');
+    tr.innerHTML = `
+        <td colspan="14"><input type="text" placeholder="Category header (e.g. Current Year (CY) Budget)" style="width:100%;font-weight:700;" onchange="update(${idx},'category',this.value)"></td>
+        <td><div class="row-actions"><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-sm">✕</button></div></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function update(idx, field, value) {
+    if (entries[idx]) entries[idx][field] = value;
+}
+
+function removeRow(btn) {
+    const tr = btn.closest('tr');
+    const idx = parseInt(tr.dataset.idx);
+    entries[idx] = null;
+    tr.remove();
+}
+
+function prepareSubmit() {
+    document.getElementById('entries_data').value = JSON.stringify(entries.filter(Boolean));
+}
+
+// Start with one empty row
+addRow();
+</script>
+{% endblock %}
