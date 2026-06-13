@@ -1,0 +1,1095 @@
+{% extends 'nia_app/base.html' %}
+{% block title %}Sub-Allotment Advice — NIA{% endblock %}
+{% block content %}
+
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+
+.nia-wrap {
+    background: white;
+    border: 2px solid #222;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    font-family: 'Times New Roman', serif;
+    font-size: 11px;
+    color: #000;
+}
+
+/* ── HEADER ── */
+.nia-header {
+    border-bottom: 2px solid #222;
+    text-align: center;
+    padding: 8px 0 6px 0;
+}
+.nia-header .republic  { font-size: 10px; }
+.nia-header .agency    { font-size: 18px; font-weight: bold; }
+.nia-header .tagline   { font-size: 10px; font-style: italic; }
+.nia-header .lungsod   { font-size: 10px; }
+.nia-header .cal-year  { font-size: 10px; font-weight: bold; }
+
+/* ── UTILITY ── */
+.inp {
+    border: none;
+    border-bottom: 1px dotted #888;
+    background: #fffde7;
+    font-family: 'Times New Roman', serif;
+    font-size: 11px;
+    padding: 1px 3px;
+    width: 100%;
+}
+.inp:focus { outline: none; background: #fff9c4; border-bottom: 2px solid #1565c0; }
+.inp-r { text-align: right; }
+.inp-c { text-align: center; }
+.inp-b { font-weight: bold; }
+
+/* ── ORIGINAL COPY BAR ── */
+.orig-bar {
+    border-bottom: 1px solid #222;
+    text-align: right;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: bold;
+    background: #f0f0f0;
+    letter-spacing: .05em;
+}
+
+/* ── TO / ADVICE ROW ── */
+.to-advice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #222;
+}
+.to-cell {
+    border-right: 1px solid #222;
+    padding: 4px 8px;
+}
+.adv-cell { padding: 4px 8px; }
+.adv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+.field-lbl { font-size: 9px; font-weight: bold; margin-bottom: 1px; }
+
+/* ── REGION BAR ── */
+.region-bar {
+    border-bottom: 1px solid #222;
+    text-align: center;
+    padding: 3px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: .04em;
+}
+
+/* ── INSTRUCTION ── */
+.instr-bar {
+    border-bottom: 1px solid #222;
+    padding: 2px 8px;
+    font-size: 8px;
+    line-height: 1.4;
+}
+
+/* ── FUND ROW ── */
+.fund-bar {
+    display: grid;
+    grid-template-columns: 1fr 130px;
+    border-bottom: 1px solid #222;
+}
+.fund-right {
+    border-left: 1px solid #222;
+    display: grid;
+    grid-template-columns: 70px 1fr;
+}
+.fund-lbl {
+    border-right: 1px solid #222;
+    font-size: 9px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2px;
+}
+.fund-val input {
+    border: none;
+    background: #fffde7;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    text-align: center;
+    width: 100%;
+    padding: 4px;
+}
+.fund-val input:focus { outline: none; background: #fff9c4; }
+
+/* ── MAIN TABLE ── */
+.main-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.main-tbl th, .main-tbl td {
+    border: 1px solid #222;
+    vertical-align: top;
+}
+.main-tbl thead th {
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    padding: 3px 4px;
+    background: #000000;
+    color: #ffffff;
+}
+.col-gaa  { width: 115px; }
+.col-obj  { width: 85px; }
+.col-desc { width: 600px; }
+.col-amt  { width: 145px; }
+
+.desc-cell { padding: 3px 5px; }
+.desc-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: underline;
+    margin-bottom: 5px;
+}
+
+/* Province rows */
+.btn-x {
+    background: none;
+    border: none;
+    color: #c00;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    line-height: 1;
+    opacity: .6;
+}
+.btn-x:hover { opacity: 1; }
+
+/* Amount column */
+.amt-cell { padding: 3px 5px; }
+.total-amt-row {
+    text-align: right;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+}
+.total-inp {
+    border: none;
+    border-bottom: 2px solid #333;
+    background: #e8f5e9;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: right;
+    width: 115px;
+    padding: 1px 3px;
+    cursor: default;
+}
+
+/* Amount in words */
+.words-row td {
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 4px;
+    border: 1px solid #222;
+}
+
+/* Signatories */
+.sig-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid #222;
+}
+.sig-box {
+    border-right: 1px solid #222;
+    padding: 4px 8px;
+}
+.sig-box:last-child { border-right: none; }
+.sig-lbl { font-size: 8px; font-weight: bold; margin-bottom: 3px; }
+
+/* Footer bar */
+.form-foot {
+    border-top: 1px solid #222;
+    padding: 2px 8px;
+    font-size: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Add buttons */
+.add-btn {
+    font-size: 9px;
+    color: #1565c0;
+    background: none;
+    border: 1px dashed #1565c0;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 1px 6px;
+    margin-top: 3px;
+}
+.add-btn:hover { background: #e3f2fd; }
+
+/* Save bar */
+.save-bar {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* ── Inline Combo (type-or-select-and-delete) ── */
+.combo-wrap {
+    position: relative;
+    width: 100%;
+}
+.combo-input::placeholder {
+    color: #aaa;
+    font-weight: normal;
+    font-style: normal;
+    text-decoration: none;
+}
+.combo-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px dotted #888;
+    background: #fffde7;
+    font-family: 'Times New Roman', serif;
+    font-size: 11px;
+    padding: 2px 3px;
+    box-sizing: border-box;
+}
+.combo-input:focus {
+    outline: none;
+    background: #fff9c4;
+    border-bottom: 2px solid #1565c0;
+}
+.combo-dropdown {
+    display: none;
+    position: absolute;
+    z-index: 9999;
+    top: 100%;
+    left: 0;
+    min-width: 230px;
+    max-width: 320px;
+    background: #fff;
+    border: 1.5px solid #1565c0;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.18);
+    overflow: hidden;
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+.combo-dropdown.open { display: block; }
+.combo-list {
+    max-height: 160px;
+    overflow-y: auto;
+}
+.combo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 4px;
+}
+.combo-item:last-child { border-bottom: none; }
+.combo-item:hover { background: #e3f2fd; }
+.combo-item span { flex: 1; word-break: break-word; }
+.combo-item-del {
+    background: none;
+    border: none;
+    color: #c00;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    opacity: .6;
+    line-height: 1;
+}
+.combo-item-del:hover { opacity: 1; }
+.combo-empty {
+    text-align: center;
+    padding: 10px;
+    font-size: 10px;
+    color: #999;
+}
+</style>
+
+<form method="post" id="nia-form">
+{% csrf_token %}
+<input type="hidden" name="provinces_data" id="provinces-data-input">
+<!-- Hidden fields that hold the actual values -->
+<input type="hidden" name="advice_number"  id="h-advice">
+<input type="hidden" name="gaa_saro_number" id="h-gaa">
+<input type="hidden" name="object_code"    id="h-obj">
+<input type="hidden" name="description"    id="h-desc">
+
+<div class="nia-wrap">
+
+    <!-- HEADER -->
+    <div class="nia-header">
+        <div class="republic">Republika ng Pilipinas</div>
+        <div class="agency">National Irrigation Administration</div>
+        <div class="tagline">(Pambansang Pangasiwaan ng Patubig)</div>
+        <div class="lungsod">Lungsod ng Quezon</div>
+        <div class="cal-year">Calendar Year &nbsp;
+            <input class="inp inp-c inp-b" name="calendar_year" value="2025" style="width:50px;display:inline;">
+        </div>
+    </div>
+
+    <!-- ORIGINAL COPY -->
+    <div class="orig-bar">✦ ORIGINAL COPY ✦</div>
+
+    <!-- TO + ADVICE -->
+    <div class="to-advice">
+        <div class="to-cell">
+            <div class="field-lbl">To:</div>
+            <input class="inp inp-b" name="to_office" value="REGIONAL IRRIGATION MANAGER" style="text-transform:uppercase;font-size:11px;">
+            <input class="inp inp-b" name="to_location" placeholder="CITY / PROVINCE" style="text-transform:uppercase;font-size:11px;margin-top:2px;" value="{{ form.instance.to_location }}">
+        </div>
+        <div class="adv-cell">
+            <div class="adv-grid">
+                <div>
+                    <div class="field-lbl">Advice of Sub-Allotment Number:</div>
+                    <div class="combo-wrap" id="wrap-advice">
+                        <input type="text" class="combo-input inp-b" id="combo-advice"
+                               placeholder="{% if fund == 'COB' %}501-2026-139-COB{% elif fund == 'CARP' %}501-2026-139-CARP{% else %}501-2026-139-LFPs{% endif %}" autocomplete="off"
+                               style="font-size:10px;"
+                               oninput="comboFilter('advice')"
+                               onfocus="comboOpen('advice')"
+                               onblur="comboBlur('advice')"
+                               onkeydown="comboKeydown('advice',event)">
+                        <div class="combo-dropdown" id="drop-advice">
+                            <div class="combo-list" id="list-advice"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="field-lbl">Date:</div>
+                    <input class="inp" type="date" name="date" value="{{ form.instance.date|date:'Y-m-d' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGION -->
+    <div class="region-bar">
+        REGION &nbsp; 13
+        <input type="hidden" name="region" value="13">
+    </div>
+
+    <!-- INSTRUCTION -->
+    <div class="instr-bar">
+        The following sub-allotment have been made available for expenditures of &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        for the period stated below. It is your primary responsibility to keep expenditures within the limits of the amount sub-allotted as herein stated.
+        Pursuant to Sec. 47, PD 1177, the incurrence of overdraft is prohibited. Parties responsible for incurrence of overdraft shall be held personally liable therefor.
+        It is understood that disbursements should be in accordance with accounting and auditing rules and regulations.
+    </div>
+
+    <!-- FUND CODE -->
+    <div class="fund-bar">
+        <div style="padding:3px 8px;"></div>
+        <div class="fund-right">
+            <div class="fund-lbl">FUND<br>CODE</div>
+            <div class="fund-val">
+                <input name="fund_code" value="501" placeholder="501">
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN TABLE -->
+    <table class="main-tbl">
+        <thead>
+            <tr>
+                <th class="col-gaa">GAA/SARO No.</th>
+                <th class="col-obj">OBJECT CODE</th>
+                <th class="col-desc">DESCRIPTION</th>
+                <th class="col-amt">AMOUNT</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <!-- GAA/SARO -->
+                <td style="padding:4px 5px;vertical-align:top;">
+                    <div class="combo-wrap" id="wrap-gaa">
+                        <input type="text" class="combo-input inp-b" id="combo-gaa"
+                               placeholder="GAA SARO" autocomplete="off"
+                               style="font-size:10px;"
+                               oninput="comboFilter('gaa')"
+                               onfocus="comboOpen('gaa')"
+                               onblur="comboBlur('gaa')"
+                               onkeydown="comboKeydown('gaa',event)">
+                        <div class="combo-dropdown" id="drop-gaa">
+                            <div class="combo-list" id="list-gaa"></div>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- OBJECT CODE -->
+                <td style="padding:4px 5px;vertical-align:top;text-align:center;">
+                    <div class="combo-wrap" id="wrap-obj">
+                        <input type="text" class="combo-input inp-c" id="combo-obj"
+                               placeholder="Object Code" autocomplete="off"
+                               style="font-size:10px;"
+                               oninput="comboFilter('obj')"
+                               onfocus="comboOpen('obj')"
+                               onblur="comboBlur('obj')"
+                               onkeydown="comboKeydown('obj',event)">
+                        <div class="combo-dropdown" id="drop-obj">
+                            <div class="combo-list" id="list-obj"></div>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- DESCRIPTION -->
+                <td class="desc-cell">
+                    <div class="desc-title" style="display:flex;align-items:center;justify-content:center;gap:4px;">
+                        <div class="combo-wrap" id="wrap-desc" style="flex:1;">
+                            <input type="text" class="combo-input inp-c" id="combo-desc"
+                                   placeholder="Major Final Output" autocomplete="off"
+                                   style="font-size:12px;text-align:center;border:none;"
+                                   oninput="comboFilter('desc');this.style.fontWeight=this.value?'bold':'normal';"
+                                   onfocus="comboOpen('desc')"
+                                   onblur="comboBlur('desc')"
+                                   onkeydown="comboKeydown('desc',event)">
+                            <div class="combo-dropdown" id="drop-desc">
+                                <div class="combo-list" id="list-desc"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="prov-cis-table"></div>
+                    <button type="button" class="add-btn" onclick="addProvince()">+ Add Province</button>
+                </td>
+
+                <!-- AMOUNT -->
+                <td class="amt-cell">
+                    <div class="total-amt-row">
+                        Php<input class="total-inp" id="total-inp" name="total_amount"
+                            placeholder="0.00" readonly
+                            title="Auto-sum of all province budgets"
+                            style="background:#e8f5e9;cursor:default;border-bottom:2px solid #333;">
+                    </div>
+                    <div id="prov-totals-col"></div>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr class="words-row">
+                <td colspan="4" style="text-align:center;font-weight:bold;font-size:11px;padding:4px;">
+                    *** <span id="words-out">ZERO PESOS</span> ***
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+
+</div>
+
+<div class="save-bar">
+    <button type="button" class="btn btn-primary"
+            onclick="if(serializeProvinces()) document.getElementById('nia-form').submit();"
+            style="padding:.65rem 2.5rem;font-size:.95rem;">
+        💾 {{ action }} Record
+    </button>
+    <a href="{% url 'index' %}{% if fund %}?fund={{ fund }}{% endif %}" class="btn btn-outline" style="padding:.65rem 2rem;">Cancel</a>
+</div>  
+</form>
+
+<script>
+let provinces = JSON.parse('{{ existing_provinces|default:"[]"|escapejs }}');
+// Sanitize: ensure all amounts are plain numbers (not formatted strings like "2,000,000.00")
+provinces.forEach(p => {
+    p.total = parseFloat(String(p.total).replace(/,/g,'')) || 0;
+    p.cis_list.forEach(c => {
+        c.amount = parseFloat(String(c.amount).replace(/,/g,'')) || 0;
+    });
+});
+
+/* ── Caraga Provinces & CIS Master List ── */
+const caragaData = {
+    "AGUSAN DEL NORTE": [
+        "Santiago CIS","Caimpugan CIS","Jabonga CIS","Kitcharao CIS",
+        "Las Nieves CIS","Magallanes CIS","Nasipit CIS","Remedios T. Romualdez CIS",
+        "Tubay CIS","Carmen CIS"
+    ],
+    "AGUSAN DEL SUR": [
+        "Bayugan CIS","Bunawan CIS","Esperanza CIS","La Paz CIS",
+        "Loreto CIS","Prosperidad CIS","Rosario CIS","San Francisco CIS",
+        "San Luis CIS","Santa Josefa CIS","Sibagat CIS","Talacogon CIS",
+        "Trento CIS","Veruela CIS"
+    ],
+    "DINAGAT ISLANDS": [
+        "Basilisa CIS","Cagdianao CIS","Dinagat CIS","Doña Helene CIS",
+        "Ferdinand CIS","Libjo CIS","Loreto CIS","San Jose CIS","Villa Ecleo CIS"
+    ],
+    "SURIGAO DEL NORTE": [
+        "Alegria CIS","Bacuag CIS","Burgos CIS","Claver CIS",
+        "Dapa CIS","Del Carmen CIS","Esperanza CIS","General Luna CIS",
+        "Gigaquit CIS","Mainit CIS","Malimono CIS","Pilar CIS",
+        "Placer CIS","San Benito CIS","San Francisco CIS","San Isidro CIS",
+        "Santa Monica CIS","Sison CIS","Socorro CIS","Surigao City CIS",
+        "Tagana-an CIS","Tubod CIS","Sayak CIS","San Pedro CIS","San Roque CIS"
+    ],
+    "SURIGAO DEL SUR": [
+        "Barobo CIS","Bayabas CIS","Bislig City CIS","Cagwait CIS",
+        "Cantilan CIS","Carmen CIS","Carrascal CIS","Cortes CIS",
+        "Hinatuan CIS","Lanuza CIS","Lianga CIS","Lingig CIS",
+        "Madrid CIS","Marihatag CIS","San Agustin CIS","San Miguel CIS",
+        "Tagbina CIS","Tago CIS","Tandag City CIS","Tidman CIS"
+    ]
+};
+
+/* ── Number to Words ── */
+const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function n2w(n){
+    n=Math.floor(n);
+    if(!n) return 'Zero';
+    if(n<20) return ones[n];
+    if(n<100) return tens[Math.floor(n/10)]+(n%10?' '+ones[n%10]:'');
+    if(n<1000) return ones[Math.floor(n/100)]+' Hundred'+(n%100?' '+n2w(n%100):'');
+    if(n<1e6) return n2w(Math.floor(n/1000))+' Thousand'+(n%1000?' '+n2w(n%1000):'');
+    if(n<1e9) return n2w(Math.floor(n/1e6))+' Million'+(n%1e6?' '+n2w(n%1e6):'');
+    return n2w(Math.floor(n/1e9))+' Billion'+(n%1e9?' '+n2w(n%1e9):'');
+}
+
+function fmt(n){ return parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+/* ── Recalculate grand total ── */
+function recalcGrand(){
+    let grand = 0;
+    provinces.forEach(p => { grand += parseFloat(p.total)||0; });
+    document.getElementById('total-inp').value = fmt(grand);
+    const ip=Math.floor(grand), dp=Math.round((grand-ip)*100);
+    let w = n2w(ip)+' Pesos'+(dp?' and '+n2w(dp)+' Centavos':'');
+    document.getElementById('words-out').textContent = w.toUpperCase();
+}
+
+function recalcProvince(pi){
+    let t = 0;
+    provinces[pi].cis_list.forEach(c => { t += parseFloat(c.amount)||0; });
+    provinces[pi].total = t;
+    const el = document.getElementById('prov-inp-'+pi);
+    if (el) el.value = fmt(t);
+    recalcGrand();
+}
+
+/* ── CIS amount helpers ── */
+function cisAmtNoCIS(pi, ci) {
+    /* Returns true if this CIS row has no name yet */
+    return !provinces[pi].cis_list[ci].name || !provinces[pi].cis_list[ci].name.trim();
+}
+
+function cisAmtFocus(pi, ci, el) {
+    /* Strip commas so user edits raw digits */
+    const raw = String(provinces[pi].cis_list[ci].amount || '');
+    el.value = raw === '0' ? '' : raw;
+}
+
+function cisAmtInput(pi, ci, el) {
+    /* Strip anything that's not a digit or dot */
+    let raw = el.value.replace(/[^0-9.]/g, '');
+    /* Only one decimal point */
+    const parts = raw.split('.');
+    if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+
+    /* Live comma formatting on integer part once >= 1000 */
+    const intStr = raw.split('.')[0];
+    const decStr = raw.includes('.') ? '.' + raw.split('.')[1] : '';
+    const intNum = parseInt(intStr, 10) || 0;
+    const formatted = intNum >= 1000
+        ? intNum.toLocaleString('en-PH') + decStr
+        : (intStr + decStr);
+
+    /* Update field, keep cursor in sensible place */
+    const pos = el.selectionStart;
+    const diff = formatted.length - el.value.length;
+    el.value = formatted;
+    const newPos = Math.max(0, pos + diff);
+    el.setSelectionRange(newPos, newPos);
+
+    provinces[pi].cis_list[ci].amount = parseFloat(raw) || 0;
+    recalcProvince(pi);
+}
+
+function cisAmtBlur(pi, ci, el) {
+    const num = parseFloat(String(el.value).replace(/,/g, '')) || 0;
+    provinces[pi].cis_list[ci].amount = num;
+    el.value = num ? fmt(num) : '';
+    recalcProvince(pi);
+}
+
+/* ── Render all provinces & CIS ── */
+function renderTable(){
+    const descCol = document.getElementById('prov-cis-table');
+    const amtCol  = document.getElementById('prov-totals-col');
+    descCol.innerHTML = '';
+    amtCol.innerHTML  = ''; /* kept empty — all amounts are inside descCol */
+
+    provinces.forEach((prov, pi) => {
+        /* ── Province row ── */
+        const provRow = document.createElement('div');
+        provRow.style.cssText = 'display:flex;align-items:center;gap:3px;margin:3px 0 1px 0;';
+        const provOptions = Object.keys(caragaData).map(p =>
+            `<option value="${p}" ${prov.name===p?'selected':''}>${p}</option>`
+        ).join('');
+        provRow.innerHTML = `
+            <select
+                style="width:160px;font-weight:bold;font-size:9px;text-transform:uppercase;
+                       border:none;border-bottom:1px dotted #aaa;background:#fffde7;
+                       font-family:'Times New Roman',serif;padding:0px 3px;height:16px;cursor:pointer;"
+                onchange="onProvinceSelect(${pi}, this.value);">
+                <option value="">-- SELECT PROVINCE --</option>
+                ${provOptions}
+            </select>
+            <input type="text" readonly id="prov-inp-${pi}"
+                value="${prov.total ? fmt(prov.total) : '0.00'}"
+                title="Auto-calculated from CIS amounts"
+                style="width:110px;border:none;border-bottom:2px solid #333;
+                       background:#e8f5e9;text-align:right;flex-shrink:0;
+                       font-family:'Courier New',monospace;font-size:9px;
+                       font-weight:bold;padding:0px 3px;height:16px;line-height:16px;cursor:default;">
+            <button type="button" class="btn-x" style="font-size:9px;padding:0 2px;line-height:1;" onclick="removeProvince(${pi})">✕</button>
+            <button type="button" class="add-btn" style="font-size:8px;padding:0 4px;line-height:14px;" onclick="addCIS(${pi})">+ CIS</button>`;
+        descCol.appendChild(provRow);
+
+        /* ── CIS rows ── */
+        prov.cis_list.forEach((cis, ci) => {
+            const cisList = caragaData[prov.name] || [];
+            const cisRow = document.createElement('div');
+            cisRow.style.cssText = 'display:flex;align-items:center;gap:3px;margin:1px 0;padding-left:16px;position:relative;';
+            const comboId = `cis-combo-${pi}-${ci}`;
+            const dropId  = `cis-drop-${pi}-${ci}`;
+            const listId  = `cis-list-${pi}-${ci}`;
+
+            cisRow.innerHTML = `
+                <div style="position:relative;width:160px;flex-shrink:0;">
+                    <input type="text" id="${comboId}"
+                        value="${cis.name||''}"
+                        placeholder="Type or select CIS…"
+                        autocomplete="off"
+                        style="width:160px;font-size:9px;border:none;border-bottom:1px dotted #ccc;
+                               background:#fffde7;font-family:'Times New Roman',serif;
+                               padding:0 3px;height:16px;box-sizing:border-box;"
+                        oninput="cisComboFilter(${pi},${ci},this.value)"
+                        onfocus="cisComboOpen(${pi},${ci})"
+                        onblur="cisComboBlur(${pi},${ci})"
+                        onkeydown="cisComboKeydown(${pi},${ci},event)">
+                    <div id="${dropId}" style="display:none;position:absolute;z-index:9999;top:100%;left:0;min-width:200px;
+                         background:#fff;border:1.5px solid #1565c0;border-radius:6px;
+                         box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;font-family:'IBM Plex Sans',sans-serif;">
+                        <div id="${listId}" style="max-height:130px;overflow-y:auto;"></div>
+                    </div>
+                </div>`;
+
+            /* Amount input — right after the CIS name combo */
+            const cisAmtEl = document.createElement('input');
+            cisAmtEl.type = 'text';
+            cisAmtEl.inputMode = 'decimal';
+            cisAmtEl.placeholder = '0.00';
+            cisAmtEl.id = `cis-amt-${pi}-${ci}`;
+            cisAmtEl.value = cis.amount ? fmt(cis.amount) : '';
+            cisAmtEl.style.cssText = 'width:110px;border:none;border-bottom:2px solid #333;background:#e8f5e9;text-align:right;flex-shrink:0;font-family:\'Courier New\',monospace;font-size:9px;font-weight:bold;padding:0px 3px;height:16px;line-height:16px;';
+            cisAmtEl.setAttribute('onfocus', `cisAmtFocus(${pi},${ci},this)`);
+            cisAmtEl.setAttribute('oninput', `cisAmtInput(${pi},${ci},this)`);
+            cisAmtEl.setAttribute('onblur',  `cisAmtBlur(${pi},${ci},this)`);
+            cisRow.appendChild(cisAmtEl);
+
+            /* Delete button */
+            const cisDelBtn = document.createElement('button');
+            cisDelBtn.type = 'button';
+            cisDelBtn.className = 'btn-x';
+            cisDelBtn.style.cssText = 'font-size:9px;padding:0 2px;line-height:1;';
+            cisDelBtn.textContent = '✕';
+            cisDelBtn.setAttribute('onclick', `removeCIS(${pi},${ci})`);
+            cisRow.appendChild(cisDelBtn);
+
+            descCol.appendChild(cisRow);
+
+            /* Populate the CIS combo dropdown */
+            const listEl = cisRow.querySelector(`#${listId}`);
+            renderCisList(listEl, cisList, cis.name, pi, ci);
+        });
+
+        const s1=document.createElement('div'); s1.style.height='3px'; descCol.appendChild(s1);
+    });
+
+    recalcGrand();
+}
+
+/* ── CIS combo helpers ── */
+function renderCisList(listEl, allItems, currentVal, pi, ci) {
+    const q = (document.getElementById(`cis-combo-${pi}-${ci}`)?.value||'').toLowerCase();
+    const filtered = allItems.filter(c => c.toLowerCase().includes(q));
+    if (!filtered.length) {
+        listEl.innerHTML = '<div style="text-align:center;padding:8px;font-size:10px;color:#999;">No match — press <strong>Enter</strong> to add</div>';
+        return;
+    }
+    listEl.innerHTML = filtered.map(c => {
+        const isSel = c === currentVal ? 'background:#bbdefb;font-weight:600;' : '';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 7px;
+                font-size:10px;cursor:pointer;border-bottom:1px solid #f0f0f0;gap:4px;${isSel}"
+                onmousedown="pickCIS(${pi},${ci},'${c.replace(/'/g,"\\'")}')">
+                <span style="flex:1;">${c}</span>
+                <button type="button" style="background:none;border:none;color:#c00;cursor:pointer;font-size:12px;
+                        padding:0 2px;opacity:.6;line-height:1;"
+                        onmousedown="event.stopPropagation();deleteCISOption(${pi},${ci},'${c.replace(/'/g,"\\'")}')">✕</button>
+                </div>`;
+    }).join('');
+}
+
+function cisComboFilter(pi, ci, val) {
+    provinces[pi].cis_list[ci].name = val;
+    const listEl = document.getElementById(`cis-list-${pi}-${ci}`);
+    const cisList = caragaData[provinces[pi].name] || [];
+    if (listEl) renderCisList(listEl, cisList, val, pi, ci);
+    const drop = document.getElementById(`cis-drop-${pi}-${ci}`);
+    if (drop) drop.style.display = 'block';
+}
+
+function cisComboOpen(pi, ci) {
+    const drop = document.getElementById(`cis-drop-${pi}-${ci}`);
+    if (drop) drop.style.display = 'block';
+    const listEl = document.getElementById(`cis-list-${pi}-${ci}`);
+    const cisList = caragaData[provinces[pi].name] || [];
+    const curVal = provinces[pi].cis_list[ci].name || '';
+    if (listEl) renderCisList(listEl, cisList, curVal, pi, ci);
+}
+
+function cisComboBlur(pi, ci) {
+    setTimeout(() => {
+        const drop = document.getElementById(`cis-drop-${pi}-${ci}`);
+        if (drop) drop.style.display = 'none';
+    }, 200);
+}
+
+function pickCIS(pi, ci, val) {
+    provinces[pi].cis_list[ci].name = val;
+    const inp = document.getElementById(`cis-combo-${pi}-${ci}`);
+    if (inp) inp.value = val;
+    const drop = document.getElementById(`cis-drop-${pi}-${ci}`);
+    if (drop) drop.style.display = 'none';
+}
+
+function deleteCISOption(pi, ci, val) {
+    const prov = provinces[pi].name;
+    if (!prov || !caragaData[prov]) return;
+    if (!confirm('Remove "' + val + '" from CIS list?')) return;
+    caragaData[prov] = caragaData[prov].filter(c => c !== val);
+    if (provinces[pi].cis_list[ci].name === val) {
+        provinces[pi].cis_list[ci].name = '';
+    }
+    renderTable();
+}
+
+function onProvinceSelect(pi, provinceName){
+    provinces[pi].name = provinceName;
+    provinces[pi].cis_list = [{name:'', amount:0}];
+    renderTable();
+}
+
+function addProvince(){ provinces.push({name:'',total:0,cis_list:[]}); renderTable(); }
+function removeProvince(pi){ if(confirm('Remove province?')){provinces.splice(pi,1);renderTable();} }
+function addCIS(pi){
+    const cisList = provinces[pi].cis_list;
+    if(cisList.length > 0){
+        const last = cisList[cisList.length - 1];
+        if(!last.name || !last.name.trim() || parseFloat(last.amount || 0) <= 0){
+            alert("Please complete the current CIS and amount first.");
+            return;
+        }
+    }
+    cisList.push({name:'', amount:0});
+    renderTable();
+}
+function removeCIS(pi,ci){
+    const cisName = provinces[pi].cis_list[ci].name || 'this CIS';
+    if(!confirm(`Remove "${cisName}" ?`)){ return; }
+    provinces[pi].cis_list.splice(ci,1);
+    recalcProvince(pi);
+    renderTable();
+}
+
+function validateFundMatch(adviceNumber) {
+    if (!FUND_TYPE || !adviceNumber) return true; // no restriction if fund unknown
+    const val = adviceNumber.toUpperCase();
+    const hasCOB  = val.includes('COB')  && !val.includes('CARP');
+    const hasCARP = val.includes('CARP');
+    const hasLFP  = val.includes('LFP');
+
+    if (FUND_TYPE === 'COB'  && !hasCOB)  return false;
+    if (FUND_TYPE === 'CARP' && !hasCARP) return false;
+    if (FUND_TYPE === 'LFPs' && !hasLFP)  return false;
+    return true;
+}
+
+// Find this in your <script> block — the FUND_TYPE variable is already set via Django template
+// Add this right after the existing: const FUND_TYPE = '{{ fund }}';
+// (If FUND_TYPE isn't declared yet, add it near the top of your script block)
+const FUND_TYPE = '{{ fund }}';  // 'COB', 'LFPs', 'CARP', or ''
+function serializeProvinces() {
+    const adviceVal = document.getElementById('combo-advice').value.trim();
+
+    if (!validateFundMatch(adviceVal)) {
+        const fundLabel = FUND_TYPE === 'LFPs' ? 'LFPs' : FUND_TYPE;
+        alert(
+            `⚠️ Fund type mismatch!\n\n` +
+            `You are currently in the "${fundLabel}" section, but the Advice Number "${adviceVal}" does not match.\n\n` +
+            `The selected document type does not match the entered record.\n` +
+            `Please enter an Advice Number containing "${fundLabel}".`
+        );
+        document.getElementById('combo-advice').focus();
+        return false; // prevent form submission
+    }
+
+    document.getElementById('provinces-data-input').value = JSON.stringify(provinces);
+    document.getElementById('h-advice').value = adviceVal;
+    document.getElementById('h-gaa').value    = document.getElementById('combo-gaa').value;
+    document.getElementById('h-obj').value    = document.getElementById('combo-obj').value;
+    document.getElementById('h-desc').value   = document.getElementById('combo-desc').value;
+    return true;
+}
+
+renderTable();
+
+/* ═══ COMBO BOX ENGINE (for GAA, Object Code, Description, Advice No.) ═══ */
+const EXISTING_ADVICE = "";
+const EXISTING_GAA    = "";
+const EXISTING_OBJ    = "";
+const EXISTING_DESC   = "";
+
+const API_URLS = {
+    advice: { get: '{% url "api_advice_numbers" %}', table: 'advice_number' },
+    gaa:    { get: '{% url "api_gaa" %}',            table: 'gaa' },
+    obj:    { get: '{% url "api_object_codes" %}',   table: 'object_code' },
+    desc:   { get: '{% url "api_descriptions" %}',   table: 'description' },
+};
+const SAVE_URL = '{% url "api_save" %}';
+const DEL_URL  = '{% url "api_delete" %}';
+const CSRF     = '{{ csrf_token }}';
+
+/* Store items per combo key */
+const comboItems = { advice:[], gaa:[], obj:[], desc:[] };
+
+/* ── Toast notification ── */
+function showToast(msg, ok=true) {
+    let t = document.getElementById('combo-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'combo-toast';
+        t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+            padding:8px 20px;border-radius:20px;font-size:12px;font-weight:600;
+            font-family:'IBM Plex Sans',sans-serif;z-index:99999;
+            box-shadow:0 4px 16px rgba(0,0,0,.18);pointer-events:none;transition:opacity .3s;`;
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = ok ? '#16a34a' : '#dc2626';
+    t.style.color = '#fff';
+    t.style.opacity = '1';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => { t.style.opacity = '0'; }, 2000);
+}
+
+function comboOpen(key) {
+    renderComboList(key);
+    document.getElementById('drop-'+key).classList.add('open');
+}
+
+function comboBlur(key) {
+    setTimeout(() => {
+        document.getElementById('drop-'+key).classList.remove('open');
+    }, 200);
+}
+
+function comboFilter(key) {
+    renderComboList(key);
+    document.getElementById('drop-'+key).classList.add('open');
+    syncHidden(key);
+}
+
+/* ── Enter key: save new value to DB if not already in list ── */
+async function comboKeydown(key, e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const inp = document.getElementById('combo-'+key);
+    const val = (inp.value||'').trim();
+    if (!val) return;
+
+    /* Check if already exists */
+    const exists = comboItems[key].some(i => (i.value||'').toLowerCase() === val.toLowerCase());
+    if (exists) {
+        document.getElementById('drop-'+key).classList.remove('open');
+        syncHidden(key);
+        return;
+    }
+
+    /* Save to database */
+    const api = API_URLS[key];
+    try {
+        const res = await fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ table: api.table, value: val })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (data.created) {
+                comboItems[key].push({ id: data.id, value: val });
+                showToast('✓ "' + val + '" added to list');
+            } else {
+                showToast('"' + val + '" already in database');
+            }
+        } else {
+            showToast(data.error || 'Could not save', false);
+        }
+    } catch(err) {
+        showToast('Network error', false);
+    }
+
+    syncHidden(key);
+    document.getElementById('drop-'+key).classList.remove('open');
+}
+
+function syncHidden(key) {
+    const map = { advice:'h-advice', gaa:'h-gaa', obj:'h-obj', desc:'h-desc' };
+    const hid = document.getElementById(map[key]);
+    const inp = document.getElementById('combo-'+key);
+    if (hid && inp) hid.value = inp.value;
+}
+
+function renderComboList(key) {
+    const q = (document.getElementById('combo-'+key).value||'').toLowerCase();
+    const listEl = document.getElementById('list-'+key);
+    let items = comboItems[key];
+
+    // For advice number, only show suggestions matching the current fund
+    if (key === 'advice' && FUND_TYPE) {
+        items = items.filter(i => {
+            const v = (i.value||'').toUpperCase();
+            if (FUND_TYPE === 'COB')  return v.includes('COB')  && !v.includes('CARP') && !v.includes('LFPS');
+            if (FUND_TYPE === 'LFPs') return v.includes('LFPS') || v.includes('LFP');
+            if (FUND_TYPE === 'CARP') return v.includes('CARP') && !v.includes('COB');
+            return true;
+        });
+    }
+
+    const filtered = items.filter(i => (i.value||'').toLowerCase().includes(q));
+    if (!filtered.length) {
+        listEl.innerHTML = '<div class="combo-empty">No match — press <strong>Enter</strong> to add</div>';
+        return;
+    }
+    const curVal = document.getElementById('combo-'+key).value;
+    listEl.innerHTML = filtered.map(item => {
+        const v = item.value || '';
+        const label = key === 'gaa' ? v.replace('\n', ' / ') : v;
+        const isSel = v === curVal ? ' style="background:#bbdefb;font-weight:600;"' : '';
+        return `<div class="combo-item"${isSel} onmousedown="comboPickItem('${key}','${v.replace(/'/g,"\\'")}')">
+            <span>${label}</span>
+            <button type="button" class="combo-item-del"
+                onmousedown="event.stopPropagation();comboDeleteItem('${key}',${item.id},'${v.replace(/'/g,"\\'")}')">✕</button>
+        </div>`;
+    }).join('');
+}
+
+function comboPickItem(key, val) {
+    const inp = document.getElementById('combo-'+key);
+    inp.value = val;
+    if (key === 'desc') inp.style.fontWeight = val ? 'bold' : 'normal';
+    syncHidden(key);
+    document.getElementById('drop-'+key).classList.remove('open');
+}
+
+async function comboDeleteItem(key, id, val) {
+    if (!confirm('Delete "' + val + '"?')) return;
+    const api = API_URLS[key];
+    try {
+        const res = await fetch(DEL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ table: api.table, id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            comboItems[key] = comboItems[key].filter(i => i.id !== id);
+            const inp = document.getElementById('combo-'+key);
+            if (inp && inp.value === val) { inp.value = ''; syncHidden(key); }
+            renderComboList(key);
+            showToast('✓ Deleted');
+        }
+    } catch(e) {}
+}
+
+/* ── Load all dropdowns on page load ── */
+async function loadAllCombos() {
+    const keys = ['advice','gaa','obj','desc'];
+    const urls = keys.map(k => fetch(API_URLS[k].get));
+    try {
+        const results = await Promise.all(urls);
+        const jsons   = await Promise.all(results.map(r => r.json()));
+        jsons.forEach((data, i) => {
+            comboItems[keys[i]] = data.items || [];
+        });
+        /* Only pre-fill when editing an existing record (values come from server) */
+        const existingVals = {
+            advice: "{{ form.instance.advice_number|default:''|escapejs }}",
+            gaa:    "{{ form.instance.gaa_saro_number|default:''|escapejs }}",
+            obj:    "{{ form.instance.object_code|default:''|escapejs }}",
+            desc:   "{{ form.instance.description|default:''|escapejs }}",
+        };
+        keys.forEach(k => {
+            const inp = document.getElementById('combo-'+k);
+            if (inp && existingVals[k]) {
+                inp.value = k === 'gaa' ? existingVals[k].replace('\n',' / ') : existingVals[k];
+                syncHidden(k);
+            }
+        });
+    } catch(e) {}
+}
+
+loadAllCombos();
+
+/* ═══ CIS Enter-to-add (adds to local caragaData list) ═══ */
+async function cisComboKeydown(pi, ci, e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const inp = document.getElementById(`cis-combo-${pi}-${ci}`);
+    const val = (inp ? inp.value : '').trim();
+    if (!val) return;
+    const prov = provinces[pi].name;
+
+    /* Save to DB as a CIS item */
+    try {
+        const res = await fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ table: 'cis', value: val, province: prov })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (prov && caragaData[prov] && !caragaData[prov].includes(val)) {
+                caragaData[prov].push(val);
+            }
+            showToast('✓ "' + val + '" added');
+        }
+    } catch(err) { /* still usable even if save fails */ }
+
+    provinces[pi].cis_list[ci].name = val;
+    const drop = document.getElementById(`cis-drop-${pi}-${ci}`);
+    if (drop) drop.style.display = 'none';
+}
+
+
+</script>
+
+
+{% endblock %}
