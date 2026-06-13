@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NIA Sub-Allotment System{% endblock %}</title>
+    <style>
+   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+    --navy:#0a1628; --navy-mid:#112240; --blue:#1d4ed8; --blue-light:#3b82f6;
+    --gold:#d4a017; --gold-light:#f5c842; --cream:#faf7f0; --cream-dark:#f0ebe0;
+    --text:#1a1a2e; --text-muted:#4a5568; --border:#d1c9b8;
+    --success:#16a34a; --danger:#dc2626; --white:#ffffff;
+    --shadow:0 4px 24px rgba(10,22,40,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;}
+nav{background:var(--navy);padding:0 2rem;display:flex;align-items:center;gap:1.5rem;height:60px;border-bottom:3px solid var(--gold);}
+nav .brand{font-family:'Source Serif 4',serif;font-size:1.1rem;font-weight:700;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:.6rem;}
+nav .brand span{color:var(--gold);}
+nav a.nav-link{color:rgba(255,255,255,.7);text-decoration:none;font-size:.85rem;font-weight:500;letter-spacing:.05em;padding:.3rem .8rem;border-radius:4px;transition:all .2s;}
+nav a.nav-link:hover{color:var(--white);background:rgba(255,255,255,.1);}
+nav .nav-right{margin-left:auto;}
+.nav-dropdown{position:relative;display:inline-flex;align-items:center;}
+.nav-dropdown-toggle{color:rgba(255,255,255,.7);font-size:.85rem;font-weight:500;letter-spacing:.05em;padding:.3rem .8rem;border-radius:4px;transition:all .2s;cursor:pointer;display:flex;align-items:center;gap:.35rem;background:none;border:none;font-family:inherit;}
+.nav-dropdown-toggle:hover,.nav-dropdown.open .nav-dropdown-toggle{color:var(--white);background:rgba(255,255,255,.1);}
+.nav-dropdown-toggle .arrow{font-size:.6rem;transition:transform .2s;}
+.nav-dropdown.open .nav-dropdown-toggle .arrow{transform:rotate(180deg);}
+.nav-dropdown-menu{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#ffffff;border-radius:8px;box-shadow:0 8px 32px rgba(10,22,40,.18);border:1px solid #d1c9b8;min-width:160px;z-index:9999;overflow:visible;}
+.nav-dropdown.open .nav-dropdown-menu{display:block;}
+.nav-dropdown-menu > a{display:block;padding:.65rem 1.1rem;font-size:.85rem;font-weight:500;color:#1a1a2e;text-decoration:none;transition:background .15s;}
+.nav-dropdown-menu > a:hover{background:#f0ebe0;color:#0a1628;}
+.container{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+.messages{margin-bottom:1.5rem;}
+.message{padding:.85rem 1.2rem;border-radius:6px;margin-bottom:.5rem;font-size:.9rem;font-weight:500;}
+.message.success{background:#dcfce7;color:#15803d;border-left:4px solid var(--success);}
+.message.error{background:#fee2e2;color:#b91c1c;border-left:4px solid var(--danger);}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1.3rem;border-radius:6px;font-size:.875rem;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;text-decoration:none;border:none;transition:all .2s;}
+.btn-primary{background:var(--blue);color:white;} .btn-primary:hover{background:#1e40af;}
+.btn-gold{background:var(--gold);color:var(--navy);} .btn-gold:hover{background:var(--gold-light);}
+.btn-outline{background:transparent;color:var(--blue);border:2px solid var(--blue);} .btn-outline:hover{background:var(--blue);color:white;}
+.btn-danger{background:var(--danger);color:white;} .btn-danger:hover{background:#b91c1c;}
+.btn-sm{padding:.4rem .9rem;font-size:.8rem;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1.2rem;border-bottom:2px solid var(--border);}
+.page-header h1{font-family:'Source Serif 4',serif;font-size:1.8rem;font-weight:700;color:var(--navy);}
+.page-header .subtitle{font-size:.85rem;color:var(--text-muted);margin-top:.2rem;}
+.card{background:var(--white);border-radius:10px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;}
+.card-header{background:var(--navy);color:white;padding:1rem 1.5rem;font-family:'Source Serif 4',serif;font-size:1rem;font-weight:600;display:flex;align-items:center;gap:.5rem;}
+.card-header .accent{color:var(--gold);}
+.card-body{padding:1.5rem;}
+.form-section{background:var(--white);border-radius:10px;border:1px solid var(--border);margin-bottom:1.5rem;overflow:hidden;box-shadow:var(--shadow);}
+.form-section-header{background:var(--navy-mid);color:white;padding:.8rem 1.4rem;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.5rem;}
+.form-section-header .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+.form-section-body{padding:1.4rem;}
+.form-row{display:grid;gap:1rem;margin-bottom:1rem;}
+.form-row.cols-2{grid-template-columns:1fr 1fr;}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:.35rem;}
+.form-group label{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.form-group label .req{color:var(--danger);margin-left:2px;}
+.form-input{padding:.6rem .85rem;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;font-family:'IBM Plex Sans',sans-serif;color:var(--text);background:var(--cream);transition:border-color .2s,box-shadow .2s;width:100%;}
+.form-input:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(59,130,246,.15);background:var(--white);}
+.errorlist{list-style:none;color:var(--danger);font-size:.78rem;margin-top:.2rem;}
+.province-block{border:1.5px solid var(--border);border-radius:8px;margin-bottom:1rem;overflow:hidden;background:var(--cream);}
+.province-header{background:#e8f0fe;padding:.7rem 1rem;display:flex;align-items:center;gap:.7rem;border-bottom:1px solid var(--border);}
+.province-header input[type=text]{flex:1;font-weight:600;font-size:.95rem;border:none;background:transparent;color:var(--navy);font-family:'IBM Plex Sans',sans-serif;}
+.province-header input[type=text]:focus{outline:2px solid var(--blue-light);border-radius:4px;}
+.province-total-wrap{display:flex;align-items:center;gap:.4rem;background:var(--white);border:1.5px solid var(--border);border-radius:6px;padding:.3rem .7rem;}
+.province-total-wrap span{font-size:.75rem;font-weight:700;color:var(--text-muted);}
+.province-total-wrap input{width:120px;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:600;color:var(--navy);text-align:right;}
+.province-total-wrap input:focus{outline:none;}
+.cis-list{padding:.8rem 1rem;}
+.cis-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;}
+.cis-row input.cis-name{flex:1;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:5px;font-size:.875rem;font-family:'IBM Plex Sans',sans-serif;background:var(--white);}
+.cis-row input.cis-amount{width:140px;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:5px;font-size:.875rem;font-family:'IBM Plex Mono',monospace;text-align:right;background:var(--white);}
+.cis-row input:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 2px rgba(59,130,246,.12);}
+.btn-remove{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:.2rem;border-radius:4px;opacity:.6;transition:opacity .2s;}
+.btn-remove:hover{opacity:1;}
+.cis-actions{display:flex;gap:.5rem;padding:0 1rem .8rem;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.875rem;}
+thead tr{background:var(--navy);color:white;}
+thead th{padding:.8rem 1rem;text-align:left;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;}
+tbody tr{border-bottom:1px solid var(--cream-dark);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f0f4ff;}
+tbody td{padding:.85rem 1rem;color:var(--text);}
+.badge{display:inline-block;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.05em;}
+.badge-region{background:#dbeafe;color:#1e40af;}
+.badge-amount{background:#fef3c7;color:#92400e;font-family:'IBM Plex Mono',monospace;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.detail-field{display:flex;flex-direction:column;gap:.2rem;}
+.detail-field .label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);}
+.detail-field .value{font-size:.95rem;color:var(--text);font-weight:500;}
+.amount-display{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:600;color:var(--navy);}
+.province-detail-block{border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;overflow:hidden;}
+.province-detail-header{background:var(--navy-mid);color:white;padding:.6rem 1rem;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.9rem;}
+.province-detail-header .prov-total{font-family:'IBM Plex Mono',monospace;color:var(--gold-light);}
+.cis-table{width:100%;}
+.cis-table td{padding:.5rem 1rem;border-bottom:1px solid var(--cream-dark);}
+.cis-table tr:last-child td{border-bottom:none;}
+.cis-table .cis-amt{font-family:'IBM Plex Mono',monospace;text-align:right;font-weight:500;}
+@media(max-width:768px){
+    .form-row.cols-2,.form-row.cols-3{grid-template-columns:1fr;}
+    .detail-grid{grid-template-columns:1fr;}
+    nav{padding:0 1rem;}
+    .container{padding:1.2rem 1rem;}
+}
+
+/* ── Submenu ── */
+.nav-dropdown-menu .submenu-item {
+    position: relative;
+}
+.nav-dropdown-menu .submenu-item > a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .65rem 1.1rem;
+    font-size: .85rem;
+    font-weight: 500;
+    color: #1a1a2e;
+    text-decoration: none;
+    transition: background .15s;
+}
+.nav-dropdown-menu .submenu-item > a:hover {
+    background: #f0ebe0;
+    color: #0a1628;
+}
+.nav-dropdown-menu .submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 120px;
+    background: #ffffff;
+    border: 1px solid #d1c9b8;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(10,22,40,.18);
+    z-index: 10000;
+}
+.nav-dropdown-menu .submenu-item:hover .submenu {
+    display: block;
+}
+.nav-dropdown-menu .submenu a {
+    display: block;
+    padding: .65rem 1.1rem;
+    font-size: .85rem;
+    font-weight: 500;
+    color: #1a1a2e;
+    text-decoration: none;
+    transition: background .15s;
+}
+.nav-dropdown-menu .submenu a:hover {
+    background: #f0ebe0;
+    color: #0a1628;
+}
+.no-record {
+    display: block;
+    padding: .65rem 1.1rem;
+    color: #4a5568;
+    font-size: .78rem;
+}
+    </style>
+</head>
+<body>
+<nav>
+    <a href="{% url 'index' %}" class="brand">🌾 NIA <span>All Records</span></a>
+
+    <div class="nav-dropdown" id="adviceDropdown">
+        <button class="nav-dropdown-toggle" onclick="toggleNav('adviceDropdown')">
+            Advice of Sub-Allotment Received<span class="arrow">▼</span>
+        </button>
+        <div class="nav-dropdown-menu">
+
+  <!-- 501 COB -->
+  <div class="submenu-item">
+    <a href="{% url 'index' %}?fund=COB">501 COB <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in cob_years %}
+        <a href="{% url 'index' %}?fund=COB&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 501 LFPs -->
+  <div class="submenu-item">
+    <a href="{% url 'index' %}?fund=LFPs">501 LFPs <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in lfps_years %}
+        <a href="{% url 'index' %}?fund=LFPs&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 501 CARP -->
+  <div class="submenu-item">
+    <a href="{% url 'index' %}?fund=CARP">501 CARP <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in carp_years %}
+        <a href="{% url 'index' %}?fund=CARP&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+    </div>
+
+    <div class="nav-dropdown" id="fundsDropdown">
+        <button class="nav-dropdown-toggle" onclick="toggleNav('fundsDropdown')">
+            Status of Funds <span class="arrow">▼</span>
+        </button>
+      <div class="nav-dropdown-menu">
+
+  <!-- 501 COB -->
+  <div class="submenu-item">
+    <a href="{% url 'allotment_list' %}?fund=COB">501 COB <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in cob_years %}
+        <a href="{% url 'allotment_list' %}?fund=COB&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 501 LFPs -->
+  <div class="submenu-item">
+    <a href="{% url 'allotment_list' %}?fund=LFPs">501 LFPs <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in lfps_years %}
+        <a href="{% url 'allotment_list' %}?fund=LFPs&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 501 CARP -->
+  <div class="submenu-item">
+    <a href="{% url 'allotment_list' %}?fund=CARP">501 CARP <span class="chevron">›</span></a>
+    <div class="submenu">
+      {% for year in carp_years %}
+        <a href="{% url 'allotment_list' %}?fund=CARP&year={{ year }}">{{ year }}</a>
+      {% empty %}
+        <span class="no-record">No records</span>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+    </div>
+    <div class="nav-dropdown" id="officeDropdown">
+    <button class="nav-dropdown-toggle" onclick="toggleNav('officeDropdown')">
+        Advice of Sub-Allotment Released <span class="arrow">▼</span>
+    </button>
+    <div class="nav-dropdown-menu">
+
+        <div class="submenu-item">
+            <a href="{% url 'province_table' 'ADN' 'AGUSAN DEL NORTE' %}">AGUSAN DEL NORTE</a>
+        </div>
+
+        <div class="submenu-item">
+            <a href="{% url 'province_table' 'ADS' 'AGUSAN DEL SUR' %}">AGUSAN DEL SUR</a>
+        </div>
+
+        <div class="submenu-item">
+            <a href="{% url 'province_table' 'SDN' 'SURIGAO DEL NORTE' %}">SURIGAO DEL NORTE</a>
+        </div>
+
+        <div class="submenu-item">
+            <a href="{% url 'province_table' 'SDS' 'SURIGAO DEL SUR' %}">SURIGAO DEL SUR</a>
+        </div>
+
+        <div class="submenu-item">
+            <a href="{% url 'province_table' 'RIO' 'REGIONAL IRRIGATION OFFICE' %}">REGIONAL IRRIGATION OFFICE</a>
+        </div>
+
+    </div>
+</div>
+</div>
+
+    <div class="nav-right"></div>
+</nav>
+<script>
+function toggleNav(id){
+    document.querySelectorAll('.nav-dropdown').forEach(function(d){ if(d.id !== id) d.classList.remove('open'); });
+    document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+    if(!e.target.closest('.nav-dropdown')) document.querySelectorAll('.nav-dropdown').forEach(function(d){ d.classList.remove('open'); });
+});
+</script>
+<div class="container">
+    {% if messages %}
+    <div class="messages">
+        {% for msg in messages %}
+        <div class="message {{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>
